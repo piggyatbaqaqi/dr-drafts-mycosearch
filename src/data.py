@@ -1,9 +1,10 @@
+import sys
+sys.path.append('../../../skol')
+sys.path.append('../../skol')
+
 from datetime import datetime
 import pandas as pd
 from math import isnan
-
-import sys
-sys.path.append('../../../skol')
 
 from finder import read_files, parse_annotated, target_classes
 from label import Label
