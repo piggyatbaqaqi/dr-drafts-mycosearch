@@ -2,6 +2,12 @@ from datetime import datetime
 import pandas as pd
 from math import isnan
 
+import sys
+sys.path.append('../../../skol')
+
+from finder import read_files, parse_annotated, target_classes
+from label import Label
+import taxon
 
 ATTRIBUTES = [
     'Similarity',
@@ -202,8 +208,8 @@ class CMU(Raw_Data_Index):
     def date2MMDDYYYY(self, date: str):
         if isinstance(date, float):
             return None
-        return datetime.strptime(date, '%m/%d/%Y').strftime('%m/%d/%Y')
-
+        return datetime.strptime(date)
+    
     def to_dict(self, idx: int, similarity: float):
         row = self.df.iloc[idx]
         result = self.mk_empty_row()
@@ -696,3 +702,49 @@ class ARXIV(Raw_Data_Index):
         result['Description'] = row['abstract']
         result['Authors'] = row['authors']
         return result
+
+
+class SKOL(Raw_Data_Index):
+    def __init__(self, filename: str, desc_att: str):
+        super().__init__(filename, desc_att)
+        self.load_data()
+
+    def load_data(self):
+        # Read a file
+        default_label = Label('Misc-exposition')
+        keep_labels = [Label('Description'), Label('Nomenclature')]
+        paragraphs = list(parse_annotated(read_files([self.filename])))
+        relabeled = list(target_classes(
+            default=default_label,
+            keep=keep_labels,
+            paragraphs=paragraphs))
+        taxa = taxon.group_paragraphs(relabeled)
+        self.df = pd.DataFrame([taxon.as_row() for taxon in taxa])
+
+    def get_descriptions(self):
+        return pd.DataFrame({'source': self.__class__.__name__,
+                             'filename': self.filename,
+                             'row': self.df.index,
+                             'description': self.df[self.description_attribute]
+                             })
+
+    def date2MMDDYYYY(self, date: str):
+        if isinstance(date, float):
+            if isnan(date):
+                return ''
+            else: print('stumped', date)
+        if '.' in date:
+            date = date.split('.')[0].strip()
+        formats = ['%a, %d %b %Y %H:%M:%S %Z',
+                   '%Y-%m-%d'
+                   ]
+        dt = None
+        for f in formats:
+            try:
+                dt = datetime.strptime(date, f).strftime('%m/%d/%Y')
+                break
+            except:
+                pass
+        if not dt:
+            print('stumped!', date)
+        return dt
