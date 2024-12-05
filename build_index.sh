@@ -16,5 +16,5 @@ for FILE in ${SDIR}/get_*; do
 	${FILE} ${IDIR} ${RDIR} ${SDIR} ${MAXLINES}
 done
 
-echo 'Building index for Dr. Grants Proposal Test-O-Meter'
+echo 'Building index for Dr. Drafts Proposal Test-O-Meter'
 python ${SDIR}/compute_embeddings.py ${IDIR}

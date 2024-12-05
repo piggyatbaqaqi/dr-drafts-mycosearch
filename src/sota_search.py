@@ -28,7 +28,8 @@ TARGET = {'NSF': 'Synopsis',
           'CMU': 'Summary',
           'PIVOT': 'Abstract',
           'EXTERNAL': 'Description',
-          'ARXIV': 'abstract'
+          'ARXIV': 'abstract',
+          'SKOL': 'description',
           }
 DRDRAFT = 'all-mpnet-base-v2'
 DRGIST = 'facebook/bart-large-cnn'
@@ -50,7 +51,7 @@ def results2console(results: pd.DataFrame, print_summary=False):
         show_one('URL', x['URL'])
         description = x['Description']
         show_one('Abstract', description, limit=True)
-        
+
 
 def results2csv(results: pd.DataFrame, output_fn: str, prompt: str, qname: str):
     """ Write the results of the SOTA Literature Search to a CSV file
