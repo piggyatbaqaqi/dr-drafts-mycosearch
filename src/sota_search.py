@@ -51,6 +51,8 @@ def results2console(results: pd.DataFrame, print_summary=False):
         show_one('URL', x['URL'])
         description = x['Description']
         show_one('Abstract', description, limit=True)
+        similarity = x['Similarity']
+        show_one('Similarity', str(similarity))
 
 
 def results2csv(results: pd.DataFrame, output_fn: str, prompt: str, qname: str):
