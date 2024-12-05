@@ -7,6 +7,8 @@ Args:
 Returns:
     index_directory/embeddings.pkl
 """
+import sys
+sys.path.append('../skol')
 from typing import List
 from sys import argv
 from glob import glob
@@ -17,7 +19,7 @@ import data as DATA_CLASSES
 
 MODEL_NAME = 'all-mpnet-base-v2'
 DESCRIPTION_ATTR = {
-                    'ARXIV': 'abstract'
+                    'SKOL': 'description'
                     }
 
 

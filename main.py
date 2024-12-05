@@ -13,6 +13,9 @@ Usage:
 Example:
     python main.py -p "Research on climate change" -k 5 -o results.csv -t "Climate Change Research"
 """
+import sys
+sys.path.append('../skol')
+
 import faulthandler
 from argparse import ArgumentParser
 from warnings import filterwarnings
@@ -56,4 +59,3 @@ if __name__ == "__main__":
         sota_search.results2console(results.iloc[:args.k])
     else:
         sota_search.results2csv(results.iloc[:args.k], args.output, args.prompt, args.title)
-

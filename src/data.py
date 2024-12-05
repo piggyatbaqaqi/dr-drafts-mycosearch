@@ -210,7 +210,7 @@ class CMU(Raw_Data_Index):
         if isinstance(date, float):
             return None
         return datetime.strptime(date)
-    
+
     def to_dict(self, idx: int, similarity: float):
         row = self.df.iloc[idx]
         result = self.mk_empty_row()
@@ -456,7 +456,7 @@ class GRANTS(Raw_Data_Index):
         # FiscalYear
         # EstimatedSynopsisCloseDateExplanation
         return result
- 
+
 
 class PIVOT(Raw_Data_Index):
     def __init__(self, filename: str, desc_att: str):
@@ -720,9 +720,16 @@ class SKOL(Raw_Data_Index):
             keep=keep_labels,
             paragraphs=paragraphs))
         taxa = taxon.group_paragraphs(relabeled)
-        self.df = pd.DataFrame([taxon.as_row() for taxon in taxa])
+
+        self.df = pd.DataFrame([tax.as_row() for tax in taxa])
 
     def get_descriptions(self):
+        if self.df.empty:
+            return pd.DataFrame({'source': self.__class__.__name__,
+                                 'filename': self.filename,
+                                 'row': pd.Index([0]),
+                                 'description': 'File has no data'
+                                 })
         return pd.DataFrame({'source': self.__class__.__name__,
                              'filename': self.filename,
                              'row': self.df.index,
@@ -749,3 +756,54 @@ class SKOL(Raw_Data_Index):
         if not dt:
             print('stumped!', date)
         return dt
+
+    def to_dict(self, idx: int, similarity: float):
+        row = self.df.iloc[idx]
+        result = self.mk_empty_row()
+        result['Similarity'] = similarity
+        result['Feed'] = 'SKOL'
+        result['FeedID'] = row['paragraph_number']
+        result['Title'] = row['taxon']
+        result['ProgramID'] = "Do we really need this?"
+        result['Sponsor'] = 'NA'  # row['Department/Ind.Agency']
+        # CGAC
+        # Sub-Tier
+        # FPDS Code
+        # Office
+        # AAC Code
+        result['Posted'] = ''
+        result['AwardType'] = 'NA'  # row['Type']
+        # BaseType
+        # ArchiveType
+        #result['DueDates'] = {'ArchiveDate': self.date2MMDDYYYY(row['ArchiveDate']),
+                              #'ResponseDeadLine': self.date2MMDDYYYY(row['ResponseDeadLine']),
+                              #'AwardDate': self.date2MMDDYYYY(row['AwardDate'])
+                              #}
+        result['CloseDate'] = ''
+        # SetASideCode
+        # SetASide
+        # NaicsCode
+        # ClassificationCode
+        # PopStreetAddress
+        # PopCity
+        # PopState
+        #result['ActivityLocation'] = row['PopZip']
+        # Pop Country
+        result['Status'] = 'unknown'
+        # AwardNumber
+        #result['Amount'] = row['Award$']
+        # Awardee
+        #result['Contacts'] = {'Title': row['PrimaryContactTitle'],
+                              #'Name': row['PrimaryContactFullname'],
+                              #'Email': row['PrimaryContactEmail'],
+                              #'Phone': row['PrimaryContactPhone'],
+                              #'Fax': row['PrimaryContactFax']
+                              #}
+        # SecondaryContactTitle, SecondaryContactFullname, SecondaryContactEmail, SecondaryContactPhone,SecondaryConteactFax
+        #result['SponsorType'] = row['OrganizationType']
+        # State, City, ZipCode, CountryCode
+        result['SolicitationURL'] = "Do we really need this?"
+        result['URL'] = 'https://github.com/piggyatbaqaqi/skol/tree/master/data/annotated/journals'
+        result['Description'] = row['description']
+        result['Authors'] = "unkonwn"
+        return result
