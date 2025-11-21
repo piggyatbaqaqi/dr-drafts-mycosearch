@@ -68,22 +68,36 @@ class EmbeddingsComputer:
         Returns:
             pandas.DataFrame: DataFrame with #narratives x #dims.
         """
+        # Initialize model and move to GPU if available
         transformer = SentenceTransformer(self.model_name)
-        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+        # Determine device and report it
+        if torch.cuda.is_available():
+            device_str = "cuda"
+            gpu_props = torch.cuda.get_device_properties(0)
+            print(f"Using GPU: {torch.cuda.get_device_name(0)}")
+            print(f"GPU Memory: {gpu_props.total_memory / 1e9:.2f} GB")
+        else:
+            device_str = "cpu"
+            print("Warning: No GPU detected. Using CPU.")
+
+        # Check for multi-GPU setup
         if torch.cuda.device_count() > 1:
-            tds = ['cuda:1', 'cuda:2', 'cuda:0', 'cuda:3']
+            print(f"Using {torch.cuda.device_count()} GPUs for multi-process encoding")
+            tds = [f'cuda:{i}' for i in range(torch.cuda.device_count())]
             pool = transformer.start_multi_process_pool(target_devices=tds)
             embs = transformer.encode_multi_process(N,
                                                     pool,
                                                     batch_size=1024,  # 128
-                                                    chunk_size=len(N)/1000  # 100
+                                                    chunk_size=len(N)//1000 if len(N) > 1000 else None
                                                     )
             transformer.stop_multi_process_pool(pool)
         else:
+            # Single GPU or CPU - use device parameter as string
             embs = transformer.encode(N,
                                       show_progress_bar=True,
                                       batch_size=64,
-                                      device=device
+                                      device=device_str  # Pass string instead of torch.device
                                       )
         ncols = len(embs[0])
         attnames = [f'F{i}' for i in range(ncols)]
