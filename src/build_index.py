@@ -24,6 +24,7 @@ class IndexBuilder:
                  redis_url: Optional[str] = None,
                  redis_username: Optional[str] = None,
                  redis_password: Optional[str] = None,
+                 redis_db: int = 0,
                  embedding_name: Optional[str] = None):
         """Initialize the IndexBuilder.
 
@@ -36,6 +37,7 @@ class IndexBuilder:
             redis_url (str, optional): Redis URL
             redis_username (str, optional): Redis username
             redis_password (str, optional): Redis password
+            redis_db (int): Redis database number (default: 0)
             embedding_name (str, optional): Name for embedding in Redis
         """
         self.idir = idir
@@ -46,6 +48,7 @@ class IndexBuilder:
         self.redis_url = redis_url
         self.redis_username = redis_username
         self.redis_password = redis_password
+        self.redis_db = redis_db
         self.embedding_name = embedding_name
         self.result = None
 
@@ -107,6 +110,7 @@ class IndexBuilder:
             redis_url=self.redis_url,
             redis_username=self.redis_username,
             redis_password=self.redis_password,
+            redis_db=self.redis_db,
             embedding_name=self.embedding_name
         )
 
@@ -144,6 +148,8 @@ if __name__ == "__main__":
                        help='Redis username')
     parser.add_argument('--redis-password', default=None,
                        help='Redis password')
+    parser.add_argument('--redis-db', type=int, default=0,
+                       help='Redis database number (default: 0)')
     parser.add_argument('--embedding-name', default=None,
                        help='Name for embedding in Redis')
     args = parser.parse_args()
@@ -158,6 +164,7 @@ if __name__ == "__main__":
         redis_url=args.redis_url,
         redis_username=args.redis_username,
         redis_password=args.redis_password,
+        redis_db=args.redis_db,
         embedding_name=args.embedding_name
     )
     builder.run()

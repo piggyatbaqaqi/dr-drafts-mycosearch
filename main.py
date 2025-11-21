@@ -42,6 +42,8 @@ if __name__ == "__main__":
                    help='Redis username')
     p.add_argument('--redis-password', default=None,
                    help='Redis password')
+    p.add_argument('--redis-db', type=int, default=0,
+                   help='Redis database number (default: 0)')
     p.add_argument('--embedding-name', default=None,
                    help='Name of embedding in Redis')
     args = p.parse_args()
@@ -61,6 +63,7 @@ if __name__ == "__main__":
             redis_url=args.redis_url,
             redis_username=args.redis_username,
             redis_password=args.redis_password,
+            redis_db=args.redis_db,
             embedding_name=args.embedding_name
         )
     else:

@@ -170,7 +170,8 @@ def read_narrative_embeddings(filename: str):
 
 def read_narrative_embeddings_from_redis(redis_url: str, embedding_name: str,
                                          redis_username: Optional[str] = None,
-                                         redis_password: Optional[str] = None):
+                                         redis_password: Optional[str] = None,
+                                         redis_db: int = 0):
     """ Read narrative embeddings from Redis
 
     Args:
@@ -178,6 +179,7 @@ def read_narrative_embeddings_from_redis(redis_url: str, embedding_name: str,
         embedding_name (str): Name of the embedding in Redis
         redis_username (str, optional): Redis username
         redis_password (str, optional): Redis password
+        redis_db (int): Redis database number (default: 0)
 
     Returns:
         Pandas.DataFrame: The narrative embeddings
@@ -185,13 +187,13 @@ def read_narrative_embeddings_from_redis(redis_url: str, embedding_name: str,
     import redis
 
     if redis_username and redis_password:
-        r = redis.from_url(redis_url, username=redis_username, password=redis_password)
+        r = redis.from_url(redis_url, username=redis_username, password=redis_password, db=redis_db)
     else:
-        r = redis.from_url(redis_url)
+        r = redis.from_url(redis_url, db=redis_db)
 
     pickled_data = r.get(embedding_name)
     if pickled_data is None:
-        raise ValueError(f"Embedding '{embedding_name}' not found in Redis")
+        raise ValueError(f"Embedding '{embedding_name}' not found in Redis (db={redis_db})")
 
     return pickle.loads(pickled_data)
 
@@ -326,6 +328,7 @@ class Experiment():
                  redis_url: Optional[str] = None,
                  redis_username: Optional[str] = None,
                  redis_password: Optional[str] = None,
+                 redis_db: int = 0,
                  embedding_name: Optional[str] = None):
         self.prompt = prompt
         self.embeddingsFN = embeddingsFN
@@ -335,6 +338,7 @@ class Experiment():
         self.redis_url = redis_url
         self.redis_username = redis_username
         self.redis_password = redis_password
+        self.redis_db = redis_db
         self.embedding_name = embedding_name
 
         # Validate inputs
@@ -353,7 +357,8 @@ class Experiment():
                 self.redis_url,
                 self.embedding_name,
                 self.redis_username,
-                self.redis_password
+                self.redis_password,
+                self.redis_db
             )
         show_data_stats(self.embeddings)
         self.nearest_neighbors = sort_by_similarity_to_prompt(self.prompt, self.embeddings)

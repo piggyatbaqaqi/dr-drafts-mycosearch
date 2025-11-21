@@ -32,6 +32,7 @@ class EmbeddingsComputer:
                  redis_url: Optional[str] = None,
                  redis_username: Optional[str] = None,
                  redis_password: Optional[str] = None,
+                 redis_db: int = 0,
                  embedding_name: Optional[str] = None,
                  model_name: str = MODEL_NAME):
         """Initialize the EmbeddingsComputer.
@@ -42,6 +43,7 @@ class EmbeddingsComputer:
             redis_url (str, optional): Redis URL for storing embeddings
             redis_username (str, optional): Redis username
             redis_password (str, optional): Redis password
+            redis_db (int): Redis database number (default: 0)
             embedding_name (str, optional): Name for embedding in Redis
             model_name (str): SentenceTransformer model name
         """
@@ -50,6 +52,7 @@ class EmbeddingsComputer:
         self.redis_url = redis_url
         self.redis_username = redis_username
         self.redis_password = redis_password
+        self.redis_db = redis_db
         self.embedding_name = embedding_name
         self.model_name = model_name
         self.result = None
@@ -122,13 +125,13 @@ class EmbeddingsComputer:
         import redis
 
         if self.redis_username and self.redis_password:
-            r = redis.from_url(self.redis_url, username=self.redis_username, password=self.redis_password)
+            r = redis.from_url(self.redis_url, username=self.redis_username, password=self.redis_password, db=self.redis_db)
         else:
-            r = redis.from_url(self.redis_url)
+            r = redis.from_url(self.redis_url, db=self.redis_db)
 
         pickled_data = pickle.dumps(self.result)
         r.set(self.embedding_name, pickled_data)
-        print(f'Embeddings written to Redis with key: {self.embedding_name}')
+        print(f'Embeddings written to Redis (db={self.redis_db}) with key: {self.embedding_name}')
 
     def write_embeddings_to_file(self):
         """Write embeddings to local filesystem using instance configuration."""
@@ -179,6 +182,8 @@ if __name__ == "__main__":
                        help='Redis username')
     parser.add_argument('--redis-password', default=None,
                        help='Redis password')
+    parser.add_argument('--redis-db', type=int, default=0,
+                       help='Redis database number (default: 0)')
     parser.add_argument('--embedding-name', default=None,
                        help='Name for embedding in Redis')
     args = parser.parse_args()
@@ -190,6 +195,7 @@ if __name__ == "__main__":
         redis_url=args.redis_url,
         redis_username=args.redis_username,
         redis_password=args.redis_password,
+        redis_db=args.redis_db,
         embedding_name=args.embedding_name
     )
     computer.run()
