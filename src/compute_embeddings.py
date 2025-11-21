@@ -9,13 +9,14 @@ Returns:
 """
 import sys
 sys.path.append('../skol')
-from typing import List
-from sys import argv
+from typing import List, Optional
 from glob import glob
 from sentence_transformers import SentenceTransformer
 import pandas
 import torch
 import data as DATA_CLASSES
+import pickle
+from argparse import ArgumentParser
 
 MODEL_NAME = 'all-mpnet-base-v2'
 DESCRIPTION_ATTR = {
@@ -87,8 +88,48 @@ def objects2descriptions(Objs: list):
                          ignore_index=True)
 
 
+def write_embeddings_to_redis(embeddings_df: pandas.DataFrame,
+                              redis_url: str,
+                              embedding_name: str,
+                              redis_username: Optional[str] = None,
+                              redis_password: Optional[str] = None):
+    """Write embeddings to Redis.
+
+    Args:
+        embeddings_df (pandas.DataFrame): DataFrame containing embeddings
+        redis_url (str): Redis URL
+        embedding_name (str): Name to store the embedding under
+        redis_username (str, optional): Redis username
+        redis_password (str, optional): Redis password
+    """
+    import redis
+
+    if redis_username and redis_password:
+        r = redis.from_url(redis_url, username=redis_username, password=redis_password)
+    else:
+        r = redis.from_url(redis_url)
+
+    pickled_data = pickle.dumps(embeddings_df)
+    r.set(embedding_name, pickled_data)
+    print(f'Embeddings written to Redis with key: {embedding_name}')
+
+
 if __name__ == "__main__":
-    IDIR = argv[1]
+    parser = ArgumentParser(description='Compute embeddings for narratives')
+    parser.add_argument('idir', help='Index directory path containing pickled CFPs/FOAs')
+    parser.add_argument('--pickle-file', default=None,
+                       help='Path to output pickle file (default: IDIR/embeddings.pkl)')
+    parser.add_argument('--redis-url', default=None,
+                       help='Redis URL for storing embeddings')
+    parser.add_argument('--redis-username', default=None,
+                       help='Redis username')
+    parser.add_argument('--redis-password', default=None,
+                       help='Redis password')
+    parser.add_argument('--embedding-name', default=None,
+                       help='Name for embedding in Redis')
+    args = parser.parse_args()
+
+    IDIR = args.idir
     objects = glob2objects(f'{IDIR}/*_S*')
     descriptions = objects2descriptions(objects)
     df = descriptions.drop_duplicates(
@@ -101,4 +142,20 @@ if __name__ == "__main__":
         print('Warning: No GPU detected. Using CPU.')
     embeddings = encode_narratives(df.description.astype(str))
     result = pandas.concat([df, embeddings], axis=1)
-    result.to_pickle(f'{IDIR}/embeddings.pkl')
+
+    # Write to Redis if embedding name is specified
+    if args.embedding_name:
+        if not args.redis_url:
+            raise ValueError("--redis-url must be provided when --embedding-name is specified")
+        write_embeddings_to_redis(
+            result,
+            args.redis_url,
+            args.embedding_name,
+            args.redis_username,
+            args.redis_password
+        )
+    else:
+        # Write to local filesystem
+        output_file = args.pickle_file if args.pickle_file else f'{IDIR}/embeddings.pkl'
+        result.to_pickle(output_file)
+        print(f'Embeddings written to: {output_file}')

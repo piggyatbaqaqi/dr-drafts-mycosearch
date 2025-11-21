@@ -13,6 +13,8 @@ from sklearn.metrics.pairwise import cosine_similarity
 from transformers import pipeline
 from src import data as DATA
 from functools import lru_cache
+import pickle
+from typing import Optional
 
 
 environ["TOKENIZERS_PARALLELISM"] = "false"  # parallel GPU throws warning
@@ -166,6 +168,33 @@ def read_narrative_embeddings(filename: str):
     """
     return pd.read_pickle(filename)
 
+def read_narrative_embeddings_from_redis(redis_url: str, embedding_name: str,
+                                         redis_username: Optional[str] = None,
+                                         redis_password: Optional[str] = None):
+    """ Read narrative embeddings from Redis
+
+    Args:
+        redis_url (str): Redis URL
+        embedding_name (str): Name of the embedding in Redis
+        redis_username (str, optional): Redis username
+        redis_password (str, optional): Redis password
+
+    Returns:
+        Pandas.DataFrame: The narrative embeddings
+    """
+    import redis
+
+    if redis_username and redis_password:
+        r = redis.from_url(redis_url, username=redis_username, password=redis_password)
+    else:
+        r = redis.from_url(redis_url)
+
+    pickled_data = r.get(embedding_name)
+    if pickled_data is None:
+        raise ValueError(f"Embedding '{embedding_name}' not found in Redis")
+
+    return pickle.loads(pickled_data)
+
 def sort_by_similarity_to_prompt(prompt, embedded_narratives):
     """ Sort a set of narratives by similarity to a prompt
 
@@ -293,16 +322,39 @@ def show_data_stats(ds):
 class Experiment():
     """ Class for running
     """
-    def __init__(self, prompt: str, embeddingsFN: str, k: int):
+    def __init__(self, prompt: str, embeddingsFN: Optional[str] = None, k: int = 3,
+                 redis_url: Optional[str] = None,
+                 redis_username: Optional[str] = None,
+                 redis_password: Optional[str] = None,
+                 embedding_name: Optional[str] = None):
         self.prompt = prompt
         self.embeddingsFN = embeddingsFN
         self.embeddings = None
         self.nearest_neighbors = None
         self.k = k
+        self.redis_url = redis_url
+        self.redis_username = redis_username
+        self.redis_password = redis_password
+        self.embedding_name = embedding_name
+
+        # Validate inputs
+        if embeddingsFN is None and embedding_name is None:
+            raise ValueError("Either embeddingsFN or embedding_name must be provided")
+        if embeddingsFN is None and redis_url is None:
+            raise ValueError("If embeddingsFN is None, redis_url must be provided")
+
     def run(self):
         """ Run the experiment
         """
-        self.embeddings = read_narrative_embeddings(self.embeddingsFN)
+        if self.embeddingsFN:
+            self.embeddings = read_narrative_embeddings(self.embeddingsFN)
+        else:
+            self.embeddings = read_narrative_embeddings_from_redis(
+                self.redis_url,
+                self.embedding_name,
+                self.redis_username,
+                self.redis_password
+            )
         show_data_stats(self.embeddings)
         self.nearest_neighbors = sort_by_similarity_to_prompt(self.prompt, self.embeddings)
 

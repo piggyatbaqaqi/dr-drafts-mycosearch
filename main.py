@@ -36,6 +36,14 @@ if __name__ == "__main__":
                    help='CSV file to store output')
     p.add_argument('-t', '--title', default='CLI prompt',
                    help='Title for results if multiple queries')
+    p.add_argument('--redis-url', default=None,
+                   help='Redis URL for reading embeddings')
+    p.add_argument('--redis-username', default=None,
+                   help='Redis username')
+    p.add_argument('--redis-password', default=None,
+                   help='Redis password')
+    p.add_argument('--embedding-name', default=None,
+                   help='Name of embedding in Redis')
     args = p.parse_args()
 
     sota_search.show_flags(args.k,
@@ -44,7 +52,19 @@ if __name__ == "__main__":
                               args.title
                               )
 
-    experiment = sota_search.Experiment(args.prompt, EMBEDDINGS, args.k)
+    # Create experiment with Redis support if specified
+    if args.embedding_name:
+        experiment = sota_search.Experiment(
+            args.prompt,
+            embeddingsFN=None,
+            k=args.k,
+            redis_url=args.redis_url,
+            redis_username=args.redis_username,
+            redis_password=args.redis_password,
+            embedding_name=args.embedding_name
+        )
+    else:
+        experiment = sota_search.Experiment(args.prompt, EMBEDDINGS, args.k)
     experiment.run()
     results = experiment.select_results(range(args.k))
     if len(results)<args.k:
