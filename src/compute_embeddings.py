@@ -24,94 +24,148 @@ DESCRIPTION_ATTR = {
                     }
 
 
-def encode_narratives(N: List[str]) -> pandas.DataFrame:
-    """Encode narratives using SentenceTransformer. Multi-GPU support.
+class EmbeddingsComputer:
+    """Class for computing and storing embeddings from narrative data."""
 
-    Model is set to all-mpnet-base-v2.
+    def __init__(self, idir: str,
+                 pickle_file: Optional[str] = None,
+                 redis_url: Optional[str] = None,
+                 redis_username: Optional[str] = None,
+                 redis_password: Optional[str] = None,
+                 embedding_name: Optional[str] = None,
+                 model_name: str = MODEL_NAME):
+        """Initialize the EmbeddingsComputer.
 
-    Args:
-        N (List[str]): List of narratives to encode. Descriptions of CFPs/FOAs.
+        Args:
+            idir (str): Index directory path containing pickled CFPs/FOAs
+            pickle_file (str, optional): Path to output pickle file
+            redis_url (str, optional): Redis URL for storing embeddings
+            redis_username (str, optional): Redis username
+            redis_password (str, optional): Redis password
+            embedding_name (str, optional): Name for embedding in Redis
+            model_name (str): SentenceTransformer model name
+        """
+        self.idir = idir
+        self.pickle_file = pickle_file
+        self.redis_url = redis_url
+        self.redis_username = redis_username
+        self.redis_password = redis_password
+        self.embedding_name = embedding_name
+        self.model_name = model_name
+        self.result = None
 
-    Returns:
-        pandas.DataFrame: DataFrame with #narratives x #dims.
-    """
-    transformer = SentenceTransformer(MODEL_NAME)
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    if torch.cuda.device_count() > 1:
-        tds = ['cuda:1', 'cuda:2', 'cuda:0', 'cuda:3']
-        pool = transformer.start_multi_process_pool(target_devices=tds)
-        embs = transformer.encode_multi_process(N,
-                                                pool,
-                                                batch_size=1024,  # 128
-                                                chunk_size=len(N)/1000  # 100
-                                                )
-        transformer.stop_multi_process_pool(pool)
-    else:
-        embs = transformer.encode(N,
-                                  show_progress_bar=True,
-                                  batch_size=64,
-                                  device=device
-                                  )
-    ncols = len(embs[0])
-    attnames = [f'F{i}' for i in range(ncols)]
-    return pandas.DataFrame(embs, columns=attnames)
+    def encode_narratives(self, N: List[str]) -> pandas.DataFrame:
+        """Encode narratives using SentenceTransformer. Multi-GPU support.
 
+        Model is set to all-mpnet-base-v2.
 
-def glob2objects(glob_pattern: str):
-    """Convert globbed files to objects.
+        Args:
+            N (List[str]): List of narratives to encode. Descriptions of CFPs/FOAs.
 
-    Args:
-        glob_pattern (str): Which files to include
-
-    Returns:
-        List[obj]: A list of class objects for reading each raw data files
-    """
-    files = list(glob(glob_pattern))
-    classes = [f.split('/')[-1].split('_')[0] for f in files]
-    zset = zip(files, classes)
-    print('zset',zset)
-    objs = [getattr(DATA_CLASSES, c)(f, DESCRIPTION_ATTR[c]) for f, c in zset]
-    print('obj',objs)
-    return objs
-
-
-def objects2descriptions(Objs: list):
-    """Convert objects to descriptions.
-
-    Args:
-        objects (list): List of class objects
-
-    Returns:
-        pandas.DataFrame: DataFrame with descriptions read from objects
-    """
-    return pandas.concat([obj.get_descriptions() for obj in Objs],
-                         ignore_index=True)
+        Returns:
+            pandas.DataFrame: DataFrame with #narratives x #dims.
+        """
+        transformer = SentenceTransformer(self.model_name)
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        if torch.cuda.device_count() > 1:
+            tds = ['cuda:1', 'cuda:2', 'cuda:0', 'cuda:3']
+            pool = transformer.start_multi_process_pool(target_devices=tds)
+            embs = transformer.encode_multi_process(N,
+                                                    pool,
+                                                    batch_size=1024,  # 128
+                                                    chunk_size=len(N)/1000  # 100
+                                                    )
+            transformer.stop_multi_process_pool(pool)
+        else:
+            embs = transformer.encode(N,
+                                      show_progress_bar=True,
+                                      batch_size=64,
+                                      device=device
+                                      )
+        ncols = len(embs[0])
+        attnames = [f'F{i}' for i in range(ncols)]
+        return pandas.DataFrame(embs, columns=attnames)
 
 
-def write_embeddings_to_redis(embeddings_df: pandas.DataFrame,
-                              redis_url: str,
-                              embedding_name: str,
-                              redis_username: Optional[str] = None,
-                              redis_password: Optional[str] = None):
-    """Write embeddings to Redis.
+    def glob2objects(self, glob_pattern: str):
+        """Convert globbed files to objects.
 
-    Args:
-        embeddings_df (pandas.DataFrame): DataFrame containing embeddings
-        redis_url (str): Redis URL
-        embedding_name (str): Name to store the embedding under
-        redis_username (str, optional): Redis username
-        redis_password (str, optional): Redis password
-    """
-    import redis
+        Args:
+            glob_pattern (str): Which files to include
 
-    if redis_username and redis_password:
-        r = redis.from_url(redis_url, username=redis_username, password=redis_password)
-    else:
-        r = redis.from_url(redis_url)
+        Returns:
+            List[obj]: A list of class objects for reading each raw data files
+        """
+        files = list(glob(glob_pattern))
+        classes = [f.split('/')[-1].split('_')[0] for f in files]
+        zset = zip(files, classes)
+        print('zset',zset)
+        objs = [getattr(DATA_CLASSES, c)(f, DESCRIPTION_ATTR[c]) for f, c in zset]
+        print('obj',objs)
+        return objs
 
-    pickled_data = pickle.dumps(embeddings_df)
-    r.set(embedding_name, pickled_data)
-    print(f'Embeddings written to Redis with key: {embedding_name}')
+    def objects2descriptions(self, Objs: list):
+        """Convert objects to descriptions.
+
+        Args:
+            objects (list): List of class objects
+
+        Returns:
+            pandas.DataFrame: DataFrame with descriptions read from objects
+        """
+        return pandas.concat([obj.get_descriptions() for obj in Objs],
+                             ignore_index=True)
+
+
+    def write_embeddings_to_redis(self):
+        """Write embeddings to Redis using instance configuration."""
+        import redis
+
+        if self.redis_username and self.redis_password:
+            r = redis.from_url(self.redis_url, username=self.redis_username, password=self.redis_password)
+        else:
+            r = redis.from_url(self.redis_url)
+
+        pickled_data = pickle.dumps(self.result)
+        r.set(self.embedding_name, pickled_data)
+        print(f'Embeddings written to Redis with key: {self.embedding_name}')
+
+    def write_embeddings_to_file(self):
+        """Write embeddings to local filesystem using instance configuration."""
+        output_file = self.pickle_file if self.pickle_file else f'{self.idir}/embeddings.pkl'
+        self.result.to_pickle(output_file)
+        print(f'Embeddings written to: {output_file}')
+
+    def run(self):
+        """Run the full embeddings computation pipeline.
+
+        Returns:
+            pandas.DataFrame: The computed embeddings
+        """
+        objects = self.glob2objects(f'{self.idir}/*_S*')
+        descriptions = self.objects2descriptions(objects)
+        df = descriptions.drop_duplicates(
+            subset=['description'],
+            keep='last',
+            ignore_index=True
+        )
+
+        if not torch.cuda.is_available():
+            print('Warning: No GPU detected. Using CPU.')
+
+        embeddings = self.encode_narratives(df.description.astype(str))
+        self.result = pandas.concat([df, embeddings], axis=1)
+
+        # Write to Redis if embedding name is specified
+        if self.embedding_name:
+            if not self.redis_url:
+                raise ValueError("redis_url must be provided when embedding_name is specified")
+            self.write_embeddings_to_redis()
+        else:
+            # Write to local filesystem
+            self.write_embeddings_to_file()
+
+        return self.result
 
 
 if __name__ == "__main__":
@@ -129,33 +183,13 @@ if __name__ == "__main__":
                        help='Name for embedding in Redis')
     args = parser.parse_args()
 
-    IDIR = args.idir
-    objects = glob2objects(f'{IDIR}/*_S*')
-    descriptions = objects2descriptions(objects)
-    df = descriptions.drop_duplicates(
-        subset=['description'],
-        keep='last',
-        ignore_index=True
-        )
-    #df = descriptions
-    if not torch.cuda.is_available():
-        print('Warning: No GPU detected. Using CPU.')
-    embeddings = encode_narratives(df.description.astype(str))
-    result = pandas.concat([df, embeddings], axis=1)
-
-    # Write to Redis if embedding name is specified
-    if args.embedding_name:
-        if not args.redis_url:
-            raise ValueError("--redis-url must be provided when --embedding-name is specified")
-        write_embeddings_to_redis(
-            result,
-            args.redis_url,
-            args.embedding_name,
-            args.redis_username,
-            args.redis_password
-        )
-    else:
-        # Write to local filesystem
-        output_file = args.pickle_file if args.pickle_file else f'{IDIR}/embeddings.pkl'
-        result.to_pickle(output_file)
-        print(f'Embeddings written to: {output_file}')
+    # Create EmbeddingsComputer instance and run
+    computer = EmbeddingsComputer(
+        idir=args.idir,
+        pickle_file=args.pickle_file,
+        redis_url=args.redis_url,
+        redis_username=args.redis_username,
+        redis_password=args.redis_password,
+        embedding_name=args.embedding_name
+    )
+    computer.run()
