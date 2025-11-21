@@ -142,7 +142,7 @@ if __name__ == "__main__":
                        help='Maximum lines per split file (default: 10000)')
     parser.add_argument('--pickle-file', default=None,
                        help='Path to output pickle file (default: IDIR/embeddings.pkl)')
-    parser.add_argument('--redis-url', default=None,
+    parser.add_argument('--redis-url', default='redis://localhost:6379',
                        help='Redis URL for storing embeddings')
     parser.add_argument('--redis-username', default=None,
                        help='Redis username')

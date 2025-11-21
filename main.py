@@ -36,7 +36,7 @@ if __name__ == "__main__":
                    help='CSV file to store output')
     p.add_argument('-t', '--title', default='CLI prompt',
                    help='Title for results if multiple queries')
-    p.add_argument('--redis-url', default=None,
+    p.add_argument('--redis-url', default='redis://localhost:6379',
                    help='Redis URL for reading embeddings')
     p.add_argument('--redis-username', default=None,
                    help='Redis username')
@@ -44,7 +44,7 @@ if __name__ == "__main__":
                    help='Redis password')
     p.add_argument('--redis-db', type=int, default=0,
                    help='Redis database number (default: 0)')
-    p.add_argument('--embedding-name', default=None,
+    p.add_argument('--embedding-name', default='skol:embeddings:v0.1',
                    help='Name of embedding in Redis')
     args = p.parse_args()
 
