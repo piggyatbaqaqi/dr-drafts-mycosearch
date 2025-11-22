@@ -72,10 +72,10 @@ results2console(results)
 ## CouchDB Integration
 
 ```python
-from dr_drafts_mycosearch.data import COUCHDB
+from dr_drafts_mycosearch.data import SKOL_TAXA
 
 # Connect to CouchDB
-source = COUCHDB(
+source = SKOL_TAXA(
     couchdb_url="http://localhost:5984",
     db_name="taxa_db"
 )

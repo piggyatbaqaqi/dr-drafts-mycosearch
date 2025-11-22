@@ -21,7 +21,7 @@ from argparse import ArgumentParser
 MODEL_NAME = 'all-mpnet-base-v2'
 DESCRIPTION_ATTR = {
                     'SKOL': 'description',
-                    'COUCHDB': 'description'
+                    'SKOL_TAXA': 'description'
                     }
 
 

@@ -185,7 +185,7 @@ from dr_drafts_mycosearch import Experiment, EmbeddingsComputer, IndexBuilder
 from dr_drafts_mycosearch import results2console, results2csv
 
 # Data sources
-from dr_drafts_mycosearch.data import COUCHDB, ARXIV, NSF, SKOL
+from dr_drafts_mycosearch.data import SKOL_TAXA, ARXIV, NSF, SKOL
 ```
 
 ## Package Metadata

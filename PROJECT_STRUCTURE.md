@@ -22,7 +22,7 @@ dr-drafts-mycosearch/
 ├── src/                          # Main source code (package: dr_drafts_mycosearch)
 │   ├── __init__.py              # Package initialization
 │   ├── cli.py                   # CLI entry point (dr-drafts command)
-│   ├── data.py                  # Data source classes (NSF, ARXIV, COUCHDB, etc.)
+│   ├── data.py                  # Data source classes (NSF, ARXIV, SKOL_TAXA, etc.)
 │   ├── sota_search.py           # Search engine and similarity computation
 │   ├── compute_embeddings.py   # Embedding computation with sentence transformers
 │   ├── build_index.py          # Index building pipeline (dr-drafts-build-index command)
@@ -84,7 +84,7 @@ from dr_drafts_mycosearch import results2console, results2csv
 
 # Data sources module
 from dr_drafts_mycosearch import data
-from dr_drafts_mycosearch.data import COUCHDB, NSF, ARXIV, SKOL, etc.
+from dr_drafts_mycosearch.data import SKOL_TAXA, NSF, ARXIV, SKOL, etc.
 ```
 
 ### CLI Commands
@@ -105,7 +105,7 @@ Two CLI entry points are installed:
 
 Contains classes for different data sources, all inheriting from `Raw_Data_Index`:
 
-- **COUCHDB**: Direct CouchDB integration for taxonomic data
+- **SKOL_TAXA**: Direct CouchDB integration for taxonomic data
 - **SKOL**: Taxonomic data from annotated documents
 - **ARXIV**: arXiv papers
 - **NSF**: National Science Foundation grants

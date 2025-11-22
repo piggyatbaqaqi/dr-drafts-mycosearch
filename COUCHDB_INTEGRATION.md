@@ -4,7 +4,7 @@ This document describes the CouchDB integration that allows reading taxon data d
 
 ## Overview
 
-The `COUCHDB` class in [src/data.py](src/data.py) provides integration with CouchDB databases containing taxon records created by the `../skol/extract_taxa_to_couchdb.py` pipeline. This integration makes full taxon records from CouchDB accessible to the Dr. Drafts search system.
+The `SKOL_TAXA` class in [src/data.py](src/data.py) provides integration with CouchDB databases containing taxon records created by the `../skol/extract_taxa_to_couchdb.py` pipeline. This integration makes full taxon records from CouchDB accessible to the Dr. Drafts search system.
 
 ## Installation
 
@@ -19,10 +19,10 @@ pip install couchdb
 ### Basic Usage
 
 ```python
-from data import COUCHDB
+from data import SKOL_TAXA
 
-# Create a COUCHDB data source
-couchdb_source = COUCHDB(
+# Create a SKOL_TAXA data source
+couchdb_source = SKOL_TAXA(
     couchdb_url="http://localhost:5984",
     db_name="mycobank_taxa",
     desc_att='description'  # Field to use for embeddings
@@ -39,10 +39,10 @@ result = couchdb_source.to_dict(idx=0, similarity=0.95)
 ### With Authentication
 
 ```python
-from data import COUCHDB
+from data import SKOL_TAXA
 
 # Connect with username and password
-couchdb_source = COUCHDB(
+couchdb_source = SKOL_TAXA(
     couchdb_url="http://localhost:5984",
     db_name="mycobank_taxa",
     desc_att='description',
@@ -53,14 +53,14 @@ couchdb_source = COUCHDB(
 
 ### Using with Embeddings
 
-The COUCHDB data source works seamlessly with the existing embeddings pipeline:
+The SKOL_TAXA data source works seamlessly with the existing embeddings pipeline:
 
 ```python
 from compute_embeddings import EmbeddingsComputer
-from data import COUCHDB
+from data import SKOL_TAXA
 
 # Load data from CouchDB
-couchdb_source = COUCHDB(
+couchdb_source = SKOL_TAXA(
     couchdb_url="http://localhost:5984",
     db_name="mycobank_taxa"
 )
@@ -72,7 +72,7 @@ descriptions = couchdb_source.get_descriptions()
 
 ## Data Structure
 
-The `COUCHDB` class expects documents in the format created by `extract_taxa_to_couchdb.py`:
+The `SKOL_TAXA` class expects documents in the format created by `extract_taxa_to_couchdb.py`:
 
 ```json
 {
@@ -104,7 +104,7 @@ The `COUCHDB` class expects documents in the format created by `extract_taxa_to_
 
 ### `__init__(couchdb_url, db_name, desc_att='description', username=None, password=None)`
 
-Creates a new COUCHDB data source.
+Creates a new SKOL_TAXA data source.
 
 **Parameters:**
 - `couchdb_url` (str): URL of the CouchDB server (e.g., 'http://localhost:5984')
@@ -120,7 +120,7 @@ Loads all taxon documents from CouchDB into a pandas DataFrame. Automatically sk
 ### `get_descriptions()`
 
 Returns a DataFrame with source information and descriptions for embedding:
-- `source`: Class name ('COUCHDB')
+- `source`: Class name ('SKOL_TAXA')
 - `filename`: Database identifier
 - `row`: DataFrame index
 - `description`: Text to embed
@@ -150,11 +150,11 @@ python example_couchdb_usage.py
 To use CouchDB data in the build pipeline, you can save CouchDB records to pickle files that follow the naming convention expected by `compute_embeddings.py`:
 
 ```python
-from data import COUCHDB
+from data import SKOL_TAXA
 import pickle
 
 # Load from CouchDB
-couchdb_source = COUCHDB(
+couchdb_source = SKOL_TAXA(
     couchdb_url="http://localhost:5984",
     db_name="mycobank_taxa"
 )
@@ -182,7 +182,7 @@ This integration reads data created by the `../skol/extract_taxa_to_couchdb.py` 
 3. Saves Taxa as JSON documents to a taxon CouchDB database
 4. Uses deterministic document IDs based on (doc_id, url, line_number) for idempotent writes
 
-The `COUCHDB` class provides the read-side of this pipeline, making the extracted taxa available for search and discovery.
+The `SKOL_TAXA` class provides the read-side of this pipeline, making the extracted taxa available for search and discovery.
 
 ## Troubleshooting
 

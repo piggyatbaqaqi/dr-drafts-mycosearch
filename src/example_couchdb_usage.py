@@ -2,7 +2,7 @@
 """
 Example usage of the CouchDB integration for Dr. Drafts Mycosearch.
 
-This script demonstrates how to use the COUCHDB class to read taxon data
+This script demonstrates how to use the SKOL_TAXA class to read taxon data
 from CouchDB and make it available for embedding and search.
 """
 
@@ -11,9 +11,9 @@ from data import SKOL_TAXA
 
 def main():
     """
-    Example usage of the COUCHDB data source.
+    Example usage of the SKOL_TAXA data source.
 
-    The COUCHDB class reads full taxon records from a CouchDB database
+    The SKOL_TAXA class reads full taxon records from a CouchDB database
     that was populated by ../skol/extract_taxa_to_couchdb.py.
     """
 
@@ -26,7 +26,7 @@ def main():
     password = None  # Set to your CouchDB password if needed
 
     try:
-        # Create COUCHDB data source
+        # Create SKOL_TAXA data source
         print(f"Connecting to CouchDB at {couchdb_url}...")
         couchdb_source = SKOL_TAXA(
             couchdb_url=couchdb_url,

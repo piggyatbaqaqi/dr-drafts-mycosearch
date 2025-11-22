@@ -136,12 +136,12 @@ results2console(results)
 Load taxonomic data directly from CouchDB:
 
 ```python
-from dr_drafts_mycosearch.data import COUCHDB
+from dr_drafts_mycosearch.data import SKOL_TAXA
 
 # Connect to CouchDB
-couchdb_source = COUCHDB(
+couchdb_source = SKOL_TAXA(
     couchdb_url="http://localhost:5984",
-    db_name="mycobank_taxa",
+    db_name="skol_taxa_dev",
     username="admin",
     password="secret"
 )
@@ -166,7 +166,7 @@ The system supports multiple data sources:
 - **PIVOT**: Proquest PIVOT grants
 - **SAM**: SAM.gov contracts
 - **SKOL**: Taxonomic data from annotated documents
-- **COUCHDB**: Direct CouchDB integration for taxa
+- **SKOL_TAXA**: Direct CouchDB integration for taxa
 
 ### Adding Custom Data
 

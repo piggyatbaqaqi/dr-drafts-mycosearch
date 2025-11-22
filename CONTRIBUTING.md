@@ -217,12 +217,12 @@ pytest tests/test_data.py::test_couchdb_integration
 Example test:
 ```python
 import pytest
-from dr_drafts_mycosearch.data import COUCHDB
+from dr_drafts_mycosearch.data import SKOL_TAXA
 
 def test_couchdb_load():
     """Test loading data from CouchDB."""
     # Setup
-    couchdb_source = COUCHDB(
+    couchdb_source = SKOL_TAXA(
         couchdb_url="http://localhost:5984",
         db_name="test_db"
     )
