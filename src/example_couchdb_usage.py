@@ -7,7 +7,7 @@ from CouchDB and make it available for embedding and search.
 """
 
 import sys
-from data import COUCHDB
+from data import SKOL_TAXA
 
 def main():
     """
@@ -28,7 +28,7 @@ def main():
     try:
         # Create COUCHDB data source
         print(f"Connecting to CouchDB at {couchdb_url}...")
-        couchdb_source = COUCHDB(
+        couchdb_source = SKOL_TAXA(
             couchdb_url=couchdb_url,
             db_name=db_name,
             desc_att='description',  # Field to use for embeddings

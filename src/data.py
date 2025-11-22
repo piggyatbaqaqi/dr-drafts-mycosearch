@@ -815,7 +815,7 @@ class SKOL(Raw_Data_Index):
         return result
 
 
-class COUCHDB(Raw_Data_Index):
+class SKOL_TAXA(Raw_Data_Index):
     """
     Integration to read taxon data directly from CouchDB.
 
