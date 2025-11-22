@@ -128,8 +128,10 @@ class IndexBuilder:
         return self.compute_embeddings()
 
 
-if __name__ == "__main__":
+def main():
+    """Main entry point for the build-index CLI command."""
     parser = ArgumentParser(
+        prog='dr-drafts-build-index',
         description='Build index for Dr. Drafts Proposal Test-O-Meter'
     )
     parser.add_argument('--idir', default='./index',
@@ -168,3 +170,9 @@ if __name__ == "__main__":
         embedding_name=args.embedding_name
     )
     builder.run()
+    return 0
+
+
+if __name__ == "__main__":
+    import sys
+    sys.exit(main())
