@@ -117,9 +117,9 @@ class EmbeddingsComputer:
         files = list(glob(glob_pattern))
         classes = [f.split('/')[-1].split('_')[0] for f in files]
         zset = zip(files, classes)
-        print('zset',zset)
+        print('zset', zset)
         objs = [getattr(DATA_CLASSES, c)(f, DESCRIPTION_ATTR[c]) for f, c in zset]
-        print('obj',objs)
+        print('obj', objs)
         return objs
 
     def objects2descriptions(self, Objs: list):
