@@ -5,10 +5,16 @@ sys.path.append('../../skol')
 from datetime import datetime
 import pandas as pd
 from math import isnan
+from typing import Optional
 
 from finder import read_files, parse_annotated, target_classes
 from label import Label
 import taxon
+
+try:
+    import couchdb
+except ImportError:
+    couchdb = None
 
 ATTRIBUTES = [
     'Similarity',
@@ -806,4 +812,142 @@ class SKOL(Raw_Data_Index):
         result['URL'] = 'https://github.com/piggyatbaqaqi/skol/tree/master/data/annotated/journals'
         result['Description'] = row['description']
         result['Authors'] = "unkonwn"
+        return result
+
+
+class COUCHDB(Raw_Data_Index):
+    """
+    Integration to read taxon data directly from CouchDB.
+
+    This class connects to a CouchDB database containing taxon documents
+    created by ../skol/extract_taxa_to_couchdb.py and makes the full
+    records accessible for embedding and search.
+
+    Args:
+        couchdb_url: URL of the CouchDB server (e.g., 'http://localhost:5984')
+        db_name: Name of the CouchDB database containing taxa
+        desc_att: Description attribute to use for embeddings (default: 'description')
+        username: Optional CouchDB username
+        password: Optional CouchDB password
+    """
+
+    def __init__(self,
+                 couchdb_url: str,
+                 db_name: str,
+                 desc_att: str = 'description',
+                 username: Optional[str] = None,
+                 password: Optional[str] = None):
+        if couchdb is None:
+            raise ImportError("couchdb package is required. Install with: pip install couchdb")
+
+        # Store CouchDB connection parameters
+        self.couchdb_url = couchdb_url
+        self.db_name = db_name
+        self.username = username
+        self.password = password
+
+        # Use a dummy filename for compatibility with parent class
+        super().__init__(f"couchdb://{db_name}", desc_att)
+        self.load_data()
+
+    def load_data(self):
+        """Load taxon data from CouchDB into a pandas DataFrame."""
+        # Connect to CouchDB
+        server = couchdb.Server(self.couchdb_url)
+        if self.username and self.password:
+            server.resource.credentials = (self.username, self.password)
+
+        # Access the database
+        if self.db_name not in server:
+            raise ValueError(f"Database '{self.db_name}' not found in CouchDB server")
+
+        db = server[self.db_name]
+
+        # Fetch all documents from the database
+        records = []
+        for doc_id in db:
+            # Skip design documents
+            if doc_id.startswith('_design/'):
+                continue
+
+            doc = db[doc_id]
+            records.append(doc)
+
+        if not records:
+            # Create empty DataFrame if no records found
+            self.df = pd.DataFrame()
+            print(f"Warning: No taxon records found in database '{self.db_name}'")
+            return
+
+        # Convert to DataFrame
+        self.df = pd.DataFrame(records)
+        print(f"Loaded {len(self.df)} taxon records from CouchDB database '{self.db_name}'")
+
+    def get_descriptions(self):
+        """Return descriptions for embedding."""
+        if self.df.empty:
+            return pd.DataFrame({'source': self.__class__.__name__,
+                                'filename': self.filename,
+                                'row': pd.Index([0]),
+                                'description': 'Database has no data'
+                                })
+        return pd.DataFrame({'source': self.__class__.__name__,
+                            'filename': self.filename,
+                            'row': self.df.index,
+                            'description': self.df[self.description_attribute]
+                            })
+
+    def date2MMDDYYYY(self, date: str):
+        """Convert date string to MM/DD/YYYY format (not used for CouchDB taxa)."""
+        if isinstance(date, float):
+            if isnan(date):
+                return ''
+        return ''
+
+    def to_dict(self, idx: int, similarity: float):
+        """
+        Convert a taxon record to the standard result dictionary format.
+
+        Args:
+            idx: Row index in the DataFrame
+            similarity: Similarity score from embedding comparison
+
+        Returns:
+            Dictionary with standardized keys for display
+        """
+        row = self.df.iloc[idx]
+        result = self.mk_empty_row()
+
+        # Basic fields
+        result['Similarity'] = similarity
+        result['Feed'] = 'CouchDB Taxa'
+        result['Title'] = row.get('taxon', 'Unknown taxon')
+        result['Description'] = row.get('description', '')
+
+        # Extract source metadata if available
+        source = row.get('source', {})
+        if isinstance(source, dict):
+            result['FeedID'] = source.get('doc_id', row.get('_id', 'unknown'))
+            result['URL'] = source.get('url', '')
+            result['ProgramID'] = source.get('db_name', self.db_name)
+        else:
+            result['FeedID'] = row.get('_id', 'unknown')
+            result['ProgramID'] = self.db_name
+
+        # Additional metadata from the taxon record
+        result['Posted'] = ''
+        result['CloseDate'] = ''
+        result['Status'] = 'Available'
+        result['Sponsor'] = 'SKOL/CouchDB'
+        result['SponsorType'] = 'Research Database'
+        result['AwardType'] = 'Taxon Record'
+
+        # Store line/paragraph numbers if available
+        if 'line_number' in row:
+            result['LineNumber'] = row['line_number']
+        if 'paragraph_number' in row:
+            result['ParagraphNumber'] = row['paragraph_number']
+        if 'page_number' in row:
+            result['PageNumber'] = row['page_number']
+
         return result
