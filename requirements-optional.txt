@@ -1,0 +1,7 @@
+# Optional dependencies for Dr. Drafts Mycosearch
+
+# CouchDB integration (for reading taxon data from CouchDB)
+couchdb>=1.2
+
+# Kaggle integration (for downloading datasets)
+kaggle>=1.6.17

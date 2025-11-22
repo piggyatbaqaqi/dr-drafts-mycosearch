@@ -1,0 +1,38 @@
+# Include important documentation files
+include README.md
+include LICENSE
+include COUCHDB_INTEGRATION.md
+include requirements.txt
+include requirements-optional.txt
+include requirements-dev.txt
+
+# Include configuration files
+include env.yml
+include .gitignore
+
+# Include shell scripts
+recursive-include src *.sh
+
+# Include Jupyter documentation
+recursive-include src *.md
+
+# Include example prompts
+recursive-include prompts *
+
+# Exclude compiled files and caches
+global-exclude *.pyc
+global-exclude *.pyo
+global-exclude __pycache__
+global-exclude .git*
+global-exclude *.so
+
+# Exclude build artifacts
+prune build
+prune dist
+prune *.egg-info
+prune .git
+
+# Exclude test and development files
+exclude test.sh
+prune index
+prune raw

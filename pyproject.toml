@@ -1,0 +1,122 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "dr-drafts-mycosearch"
+version = "0.3.0"
+description = "State-of-the-art literature search and embedding-based discovery for scientific papers and grant opportunities, mycological fork"
+readme = "README.md"
+requires-python = ">=3.8"
+license = "MIT"
+authors = [
+    {name = "Nick Gisolfi", email="ngisolfi@cs.cmu.edu"},
+    {name = "Christopher Murphy", email="calanmurphy@gmail.com"},
+    {name = "Shintaro Osuga", email="osugas2@wwu.edu"},
+    {name = "La Monte Henry Piggy Yarroll", email="piggy@acm.org"},
+]
+maintainers = [
+    {name = "La Monte Henry Piggy Yarroll", email="piggy@acm.org"},
+]
+keywords = [
+    "literature-search",
+    "embeddings",
+    "sentence-transformers",
+    "arxiv",
+    "scientific-papers",
+    "grant-search",
+    "semantic-search",
+    "mycology",
+    "taxonomy"
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Scientific/Engineering :: Information Analysis",
+    "Topic :: Text Processing :: Indexing",
+]
+
+dependencies = [
+    "pandas>=2.0.3",
+    "numpy>=1.24.4",
+    "torch>=2.4.0",
+    "sentence-transformers>=3.0.1",
+    "transformers>=4.44.0",
+    "requests>=2.32.3",
+    "python-dateutil>=2.9.0",
+    "regex>=2024.7.24",
+    "scikit-learn>=1.0.0",
+    "redis>=4.0.0",
+]
+
+[project.optional-dependencies]
+couchdb = [
+    "couchdb>=1.2",
+]
+kaggle = [
+    "kaggle>=1.6.17",
+]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-cov>=4.0.0",
+    "black>=23.0.0",
+    "flake8>=6.0.0",
+    "mypy>=1.0.0",
+]
+all = [
+    "dr-drafts-mycosearch[couchdb,kaggle,dev]",
+]
+
+[project.urls]
+Homepage = "https://github.com/autonlab/dr-drafts-sota-literature-search"
+Repository = "https://github.com/autonlab/dr-drafts-sota-literature-search"
+Issues = "https://github.com/autonlab/dr-drafts-sota-literature-search/issues"
+
+[project.scripts]
+dr-drafts = "dr_drafts_mycosearch.cli:main"
+dr-drafts-build-index = "dr_drafts_mycosearch.build_index:main"
+
+[tool.setuptools]
+packages = ["dr_drafts_mycosearch"]
+
+[tool.setuptools.package-dir]
+dr_drafts_mycosearch = "src"
+
+[tool.setuptools.package-data]
+dr_drafts_mycosearch = ["*.md", "*.sh"]
+
+[tool.black]
+line-length = 100
+target-version = ['py38', 'py39', 'py310', 'py311']
+include = '\.pyi?$'
+exclude = '''
+/(
+    \.git
+  | \.venv
+  | build
+  | dist
+  | __pycache__
+)/
+'''
+
+[tool.mypy]
+python_version = "3.8"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = false
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = "test_*.py"
+python_classes = "Test*"
+python_functions = "test_*"
+addopts = "-v --cov=dr_drafts_mycosearch --cov-report=term-missing"
