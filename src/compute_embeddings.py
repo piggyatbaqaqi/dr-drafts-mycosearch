@@ -34,6 +34,7 @@ class EmbeddingsComputer:
                  redis_username: Optional[str] = None,
                  redis_password: Optional[str] = None,
                  redis_db: int = 0,
+                 redis_expire: Optional[int] = None,
                  embedding_name: Optional[str] = None,
                  model_name: str = MODEL_NAME):
         """Initialize the EmbeddingsComputer.
@@ -45,6 +46,8 @@ class EmbeddingsComputer:
             redis_username (str, optional): Redis username
             redis_password (str, optional): Redis password
             redis_db (int): Redis database number (default: 0)
+            redis_expire (int, optional): Expiration time for Redis entries
+             in seconds
             embedding_name (str, optional): Name for embedding in Redis
             model_name (str): SentenceTransformer model name
         """
@@ -54,11 +57,12 @@ class EmbeddingsComputer:
         self.redis_username = redis_username
         self.redis_password = redis_password
         self.redis_db = redis_db
+        self.redist_expire = redis_expire
         self.embedding_name = embedding_name
         self.model_name = model_name
         self.result = None
 
-    def encode_narratives(self, N: List[str]) -> pandas.DataFrame:
+    def encode_narratives(self, N: Iterable[str]) -> pandas.DataFrame:
         """Encode narratives using SentenceTransformer. Multi-GPU support.
 
         Model is set to all-mpnet-base-v2.
@@ -146,6 +150,8 @@ class EmbeddingsComputer:
 
         pickled_data = pickle.dumps(self.result)
         r.set(self.embedding_name, pickled_data)
+        if self.redist_expire is not None:
+            r.expire(self.embedding_name, self.redist_expire)
         print(f'Embeddings written to Redis (db={self.redis_db}) with key: {self.embedding_name}')
 
     def write_embeddings_to_file(self):
