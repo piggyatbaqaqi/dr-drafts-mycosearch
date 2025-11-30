@@ -9,7 +9,7 @@ Returns:
 """
 import sys
 sys.path.append('../skol')
-from typing import List, Optional
+from typing import Iterable, Optional
 from glob import glob
 from sentence_transformers import SentenceTransformer
 import pandas
@@ -17,6 +17,8 @@ import torch
 import data as DATA_CLASSES
 import pickle
 from argparse import ArgumentParser
+
+import redis
 
 MODEL_NAME = 'all-mpnet-base-v2'
 DESCRIPTION_ATTR = {
@@ -141,8 +143,6 @@ class EmbeddingsComputer:
 
     def write_embeddings_to_redis(self):
         """Write embeddings to Redis using instance configuration."""
-        import redis
-
         if self.redis_username and self.redis_password:
             r = redis.from_url(self.redis_url, username=self.redis_username, password=self.redis_password, db=self.redis_db)
         else:
@@ -160,20 +160,15 @@ class EmbeddingsComputer:
         self.result.to_pickle(output_file)
         print(f'Embeddings written to: {output_file}')
 
-    def run(self):
-        """Run the full embeddings computation pipeline.
+    def run(self, df: pandas.DataFrame) -> pandas.DataFrame:
+        """Run embeddings computation on a pandas DataFrame.
+
+        Args:
+            df (pandas.DataFrame): DataFrame with 'description' column
 
         Returns:
-            pandas.DataFrame: The computed embeddings
+            pandas.DataFrame: Original data concatenated with embeddings
         """
-        objects = self.glob2objects(f'{self.idir}/*_S*')
-        descriptions = self.objects2descriptions(objects)
-        df = descriptions.drop_duplicates(
-            subset=['description'],
-            keep='last',
-            ignore_index=True
-        )
-
         if not torch.cuda.is_available():
             print('Warning: No GPU detected. Using CPU.')
 
@@ -190,6 +185,22 @@ class EmbeddingsComputer:
             self.write_embeddings_to_file()
 
         return self.result
+
+    def run_local(self):
+        """Run embeddings computation from local filesystem.
+
+        Returns:
+            pandas.DataFrame: The computed embeddings
+        """
+        objects = self.glob2objects(f'{self.idir}/*_S*')
+        descriptions = self.objects2descriptions(objects)
+        df = descriptions.drop_duplicates(
+            subset=['description'],
+            keep='last',
+            ignore_index=True
+        )
+
+        return self.run(df)
 
 
 if __name__ == "__main__":
@@ -219,4 +230,4 @@ if __name__ == "__main__":
         redis_db=args.redis_db,
         embedding_name=args.embedding_name
     )
-    computer.run()
+    computer.run_local()

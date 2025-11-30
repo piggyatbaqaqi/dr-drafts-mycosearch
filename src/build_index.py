@@ -114,7 +114,7 @@ class IndexBuilder:
             embedding_name=self.embedding_name
         )
 
-        self.result = computer.run()
+        self.result = computer.run_local()
         return self.result
 
     def run(self):
