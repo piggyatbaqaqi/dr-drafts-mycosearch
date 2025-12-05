@@ -871,6 +871,7 @@ class SKOL_TAXA(Raw_Data_Index):
                 continue
 
             doc = db[doc_id]
+            print(f"DEBUG: doc: {doc}")  # Debugging line to inspect document structure
             records.append(doc)
 
         if not records:
@@ -881,21 +882,41 @@ class SKOL_TAXA(Raw_Data_Index):
 
         # Convert to DataFrame
         self.df = pd.DataFrame(records)
-        print(f"Loaded {len(self.df)} taxon records from CouchDB database '{self.db_name}'")
+        assert self.df.iloc[0]['source']['human_url'].startswith('http'), "Expected 'source.url' to start with 'http'"
 
     def get_descriptions(self):
-        """Return descriptions for embedding."""
+        """Return descriptions for embedding with full metadata."""
         if self.df.empty:
             return pd.DataFrame({'source': self.__class__.__name__,
                                 'filename': self.filename,
                                 'row': pd.Index([0]),
                                 'description': 'Database has no data'
                                 })
-        return pd.DataFrame({'source': self.__class__.__name__,
-                            'filename': self.filename,
-                            'row': self.df.index,
-                            'description': self.df[self.description_attribute]
-                            })
+
+        # Start with base fields
+        result = pd.DataFrame({
+            'description': self.df[self.description_attribute]
+        })
+
+        # Add taxon field if it exists (nomenclature)
+        if 'taxon' in self.df.columns:
+            result['taxon'] = self.df['taxon']
+
+        # Add source metadata if it exists (dict with doc_id, human_url, db_name)
+        if 'source' in self.df.columns:
+            result['source'] = self.df['source']
+
+        # Add position metadata if it exists
+        if 'line_number' in self.df.columns:
+            result['line_number'] = self.df['line_number']
+        if 'paragraph_number' in self.df.columns:
+            result['paragraph_number'] = self.df['paragraph_number']
+        if 'page_number' in self.df.columns:
+            result['page_number'] = self.df['page_number']
+        if 'empirical_page_number' in self.df.columns:
+            result['empirical_page_number'] = self.df['empirical_page_number']
+
+        return result
 
     def date2MMDDYYYY(self, date: str):
         """Convert date string to MM/DD/YYYY format (not used for CouchDB taxa)."""
