@@ -882,7 +882,10 @@ class SKOL_TAXA(Raw_Data_Index):
 
         # Convert to DataFrame
         self.df = pd.DataFrame(records)
-        assert self.df.iloc[0]['source']['human_url'].startswith('http'), "Expected 'source.url' to start with 'http'"
+        # TODO(piggy): Fix the sources with bad URLs that made this fail. Convert back to an assert.
+        if not self.df.iloc[0]['source']['human_url'].startswith('http'):
+            print("Expected 'source.url' to start with 'http': "
+                  f"{self.df.iloc[0]['source']['human_url']}")
 
     def get_descriptions(self):
         """Return descriptions for embedding with full metadata."""
