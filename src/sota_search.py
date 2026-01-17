@@ -28,6 +28,7 @@ TARGET = {'NSF': 'Synopsis',
           'GRANTS': 'Description',
           'GFORWARD': 'Description',
           'CMU': 'Summary',
+          'SKOL_TAXA': 'description',
           'PIVOT': 'Abstract',
           'EXTERNAL': 'Description',
           'ARXIV': 'abstract',
@@ -208,8 +209,11 @@ def sort_by_similarity_to_prompt(prompt, embedded_narratives):
         Pandas.DataFrame: The sorted narratives
     """
     embedded_prompt = encode_prompt(prompt)
+    # Select only embedding columns (F0, F1, F2, ...) by name pattern
+    # This allows metadata columns to be present without breaking the computation
+    embedding_cols = [col for col in embedded_narratives.columns if col.startswith('F')]
     similarity = [_[0] for _ in
-                  cosine_similarity(embedded_narratives.iloc[:, 4:],
+                  cosine_similarity(embedded_narratives[embedding_cols],
                                     embedded_prompt.reshape(1, -1))]
     result = pd.DataFrame({'similarity': similarity},
                           index=embedded_narratives.index)

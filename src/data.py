@@ -896,8 +896,24 @@ class SKOL_TAXA(Raw_Data_Index):
                                 'description': 'Database has no data'
                                 })
 
-        # Start with base fields
+        # Extract human_url from source metadata to use as filename
+        # Falls back to self.filename if source metadata is not available
+        if 'source' in self.df.columns:
+            # Extract human_url from the source dict for each row
+            filenames = self.df['source'].apply(
+                lambda x: x.get('human_url', self.filename) if isinstance(x, dict) else self.filename
+            )
+        else:
+            # No source metadata, use dummy filename for all rows
+            filenames = self.filename
+
+        # Start with required base fields for compatibility with sota_search
+        # Embedding columns (F0, F1, F2, ...) are selected by name pattern in
+        # sort_by_similarity_to_prompt(), so additional metadata columns can be included
         result = pd.DataFrame({
+            'source': self.__class__.__name__,
+            'filename': filenames,
+            'row': self.df.index,
             'description': self.df[self.description_attribute]
         })
 
@@ -906,8 +922,9 @@ class SKOL_TAXA(Raw_Data_Index):
             result['taxon'] = self.df['taxon']
 
         # Add source metadata if it exists (dict with doc_id, human_url, db_name)
+        # Note: renamed to 'source_metadata' to avoid collision with 'source' column
         if 'source' in self.df.columns:
-            result['source'] = self.df['source']
+            result['source_metadata'] = self.df['source']
 
         # Add position metadata if it exists
         if 'line_number' in self.df.columns:
