@@ -1,0 +1,64 @@
+#!/bin/bash
+set -e
+
+SKOL_HOME=/opt/skol
+DR_DRAFTS_VENV=${SKOL_HOME}/dr-drafts-venv
+
+# Create skol group if it doesn't exist
+if ! getent group skol > /dev/null 2>&1; then
+    groupadd --system skol
+    echo "Created group 'skol'"
+fi
+
+# Create skol user if it doesn't exist
+if ! getent passwd skol > /dev/null 2>&1; then
+    useradd --system --gid skol --home-dir ${SKOL_HOME} --shell /bin/false skol
+    echo "Created user 'skol'"
+fi
+
+# Create directory structure
+mkdir -p ${SKOL_HOME}
+mkdir -p ${SKOL_HOME}/bin
+mkdir -p /var/log/skol
+chown skol:skol /var/log/skol
+chmod 755 /var/log/skol
+
+# Create Python virtual environment and install dependencies
+echo "Creating Python virtual environment at ${DR_DRAFTS_VENV}..."
+python3 -m venv ${DR_DRAFTS_VENV}
+
+echo "Upgrading pip..."
+${DR_DRAFTS_VENV}/bin/pip install --upgrade pip
+
+echo "Installing dr-drafts-mycosearch package from local wheel..."
+${DR_DRAFTS_VENV}/bin/pip install ${SKOL_HOME}/wheels/dr_drafts_mycosearch-*.whl
+
+# Set ownership of venv to skol user
+chown -R skol:skol ${DR_DRAFTS_VENV}
+
+# Create with_dr_drafts wrapper script that activates the venv
+cat > ${SKOL_HOME}/bin/with_dr_drafts << 'EOF'
+#!/bin/bash
+# Wrapper script to run dr-drafts commands with proper environment
+export SKOL_HOME=/opt/skol
+export SKOL_DATA=/opt/skol/data
+export SKOL_MODELS=/opt/skol/models
+export VIRTUAL_ENV=/opt/skol/dr-drafts-venv
+export PATH="${VIRTUAL_ENV}/bin:${PATH}"
+unset PYTHONHOME
+exec "$@"
+EOF
+chmod 755 ${SKOL_HOME}/bin/with_dr_drafts
+chown skol:skol ${SKOL_HOME}/bin/with_dr_drafts
+
+# Create convenience symlinks in /usr/local/bin
+for cmd in dr-drafts dr-drafts-build-index; do
+    ln -sf ${SKOL_HOME}/bin/with_dr_drafts /usr/local/bin/${cmd}-wrapper 2>/dev/null || true
+done
+
+echo "dr-drafts-mycosearch installation complete."
+echo "Use '/opt/skol/bin/with_dr_drafts <command>' to run dr-drafts commands."
+
+#DEBHELPER#
+
+exit 0

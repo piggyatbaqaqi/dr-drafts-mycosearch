@@ -1,0 +1,23 @@
+#!/bin/bash
+set -e
+
+SKOL_HOME=/opt/skol
+DR_DRAFTS_VENV=${SKOL_HOME}/dr-drafts-venv
+
+# Remove convenience symlinks
+for cmd in dr-drafts dr-drafts-build-index; do
+    rm -f /usr/local/bin/${cmd}-wrapper 2>/dev/null || true
+done
+
+# Remove the wrapper script
+rm -f ${SKOL_HOME}/bin/with_dr_drafts 2>/dev/null || true
+
+# Remove the virtual environment
+if [ -d "${DR_DRAFTS_VENV}" ]; then
+    echo "Removing Python virtual environment..."
+    rm -rf "${DR_DRAFTS_VENV}"
+fi
+
+#DEBHELPER#
+
+exit 0
