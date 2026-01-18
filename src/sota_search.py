@@ -11,7 +11,7 @@ from dateutil.relativedelta import relativedelta
 from sentence_transformers import SentenceTransformer
 from sklearn.metrics.pairwise import cosine_similarity
 from transformers import pipeline
-from src import data as DATA
+from . import data as DATA
 from functools import lru_cache
 import pickle
 from typing import Optional

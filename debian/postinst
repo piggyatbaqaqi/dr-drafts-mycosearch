@@ -33,6 +33,14 @@ ${DR_DRAFTS_VENV}/bin/pip install --upgrade pip
 echo "Installing dr-drafts-mycosearch package from local wheel..."
 ${DR_DRAFTS_VENV}/bin/pip install ${SKOL_HOME}/wheels/dr_drafts_mycosearch-*.whl
 
+# Also install into skol venv if it exists (for integration with skol package)
+SKOL_VENV=${SKOL_HOME}/venv
+if [ -d "${SKOL_VENV}" ]; then
+    echo "Installing dr-drafts-mycosearch into skol venv..."
+    ${SKOL_VENV}/bin/pip install ${SKOL_HOME}/wheels/dr_drafts_mycosearch-*.whl
+    chown -R skol:skol ${SKOL_VENV}
+fi
+
 # Set ownership of venv to skol user
 chown -R skol:skol ${DR_DRAFTS_VENV}
 
