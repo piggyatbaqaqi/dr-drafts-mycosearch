@@ -318,11 +318,18 @@ def show_data_stats(ds):
     print(f' - Searching {len(ds)} opportunities:')
     feeds = []
     for source in ds.filename.unique():
-        feed = source.split('_')[0].split('/')[-1]
+        # Handle None, np.nan, and other non-string values
+        if pd.isna(source) or not isinstance(source, str):
+            feed = 'unknown'
+        else:
+            feed = source.split('_')[0].split('/')[-1]
         if feed not in feeds:
             feeds.append(feed)
     for feed in feeds:
-        print(f'   -- {feed}: {len(ds[ds.filename.str.contains(feed)])} opportunities')
+        if feed == 'unknown':
+            print(f'   -- {feed}: {ds.filename.isna().sum()} opportunities')
+        else:
+            print(f'   -- {feed}: {len(ds[ds.filename.str.contains(feed, na=False)])} opportunities')
 
 
 class Experiment():
