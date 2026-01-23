@@ -829,6 +829,7 @@ class SKOL_TAXA(Raw_Data_Index):
         desc_att: Description attribute to use for embeddings (default: 'description')
         username: Optional CouchDB username
         password: Optional CouchDB password
+        verbosity: Verbosity level (0=silent, 1=info, 2=debug) (default: 1)
     """
 
     def __init__(self,
@@ -836,7 +837,8 @@ class SKOL_TAXA(Raw_Data_Index):
                  db_name: str,
                  desc_att: str = 'description',
                  username: Optional[str] = None,
-                 password: Optional[str] = None):
+                 password: Optional[str] = None,
+                 verbosity: int = 1):
         if couchdb is None:
             raise ImportError("couchdb package is required. Install with: pip install couchdb")
 
@@ -845,6 +847,7 @@ class SKOL_TAXA(Raw_Data_Index):
         self.db_name = db_name
         self.username = username
         self.password = password
+        self.verbosity = verbosity
 
         # Use a dummy filename for compatibility with parent class
         super().__init__(f"couchdb://{db_name}", desc_att)
@@ -871,7 +874,8 @@ class SKOL_TAXA(Raw_Data_Index):
                 continue
 
             doc = db[doc_id]
-            print(f"DEBUG: doc: {doc}")  # Debugging line to inspect document structure
+            if self.verbosity >= 2:
+                print(f"DEBUG: doc: {doc}")  # Debugging line to inspect document structure
             records.append(doc)
 
         if not records:
