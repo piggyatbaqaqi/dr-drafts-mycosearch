@@ -939,6 +939,10 @@ class SKOL_TAXA(Raw_Data_Index):
             result['page_number'] = self.df['page_number']
         if 'empirical_page_number' in self.df.columns:
             result['empirical_page_number'] = self.df['empirical_page_number']
+        if 'pdf_page' in self.df.columns:
+            result['pdf_page'] = self.df['pdf_page']
+        if 'pdf_label' in self.df.columns:
+            result['pdf_label'] = self.df['pdf_label']
 
         return result
 
@@ -994,5 +998,9 @@ class SKOL_TAXA(Raw_Data_Index):
             result['ParagraphNumber'] = row['paragraph_number']
         if 'page_number' in row:
             result['PageNumber'] = row['page_number']
+        if 'pdf_page' in row:
+            result['PDFPage'] = row['pdf_page']
+        if 'pdf_label' in row:
+            result['PDFLabel'] = row['pdf_label']
 
         return result
