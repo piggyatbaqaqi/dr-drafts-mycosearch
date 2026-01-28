@@ -930,6 +930,10 @@ class SKOL_TAXA(Raw_Data_Index):
         if 'source' in self.df.columns:
             result['source_metadata'] = self.df['source']
 
+        # Add CouchDB _id for further work with the record (renamed to avoid CouchDB conflicts)
+        if '_id' in self.df.columns:
+            result['taxon_id'] = self.df['_id']
+
         # Add position metadata if it exists
         if 'line_number' in self.df.columns:
             result['line_number'] = self.df['line_number']
@@ -972,6 +976,7 @@ class SKOL_TAXA(Raw_Data_Index):
         result['Feed'] = 'CouchDB Taxa'
         result['Title'] = row.get('taxon', 'Unknown taxon')
         result['Description'] = row.get('description', '')
+        result['taxon_id'] = row.get('_id', '')
 
         # Extract source metadata if available
         source = row.get('source', {})
