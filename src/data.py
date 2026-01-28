@@ -1007,5 +1007,7 @@ class SKOL_TAXA(Raw_Data_Index):
             result['PDFPage'] = row['pdf_page']
         if 'pdf_label' in row:
             result['PDFLabel'] = row['pdf_label']
+        if 'empirical_page_number' in row:
+            result['EmpiricalPageNumber'] = row['empirical_page_number']
 
         return result
