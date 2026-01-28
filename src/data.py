@@ -874,8 +874,8 @@ class SKOL_TAXA(Raw_Data_Index):
                 continue
 
             doc = db[doc_id]
-            if self.verbosity >= 2:
-                print(f"DEBUG: doc: {doc}")  # Debugging line to inspect document structure
+            if self.verbosity >= 3:
+                print(f"doc: {doc}")  # Debugging line to inspect document structure
             records.append(doc)
 
         if not records:

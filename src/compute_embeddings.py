@@ -174,7 +174,6 @@ class EmbeddingsComputer:
 
         embeddings = self.encode_narratives(df.description.astype(str))
         self.result = pandas.concat([df, embeddings], axis=1)
-        print(f"DEBUG: Embeddings.run Resulting DataFrame columns: {self.result.columns.tolist()}")  # Debugging line to inspect columns
         # Write to Redis if embedding name is specified
         if self.embedding_name:
             if not self.redis_url:
