@@ -80,9 +80,10 @@ The `SKOL_TAXA` class expects documents in the format created by `extract_taxa_t
   "_rev": "1-xyz...",
   "taxon": "Nomenclature text",
   "description": "Description text",
-  "source": {
-    "doc_id": "source_document_id",
+  "ingest": {
+    "_id": "source_document_id",
     "url": "http://example.com/source",
+    "pdf_url": "http://example.com/source.pdf",
     "db_name": "mycobank_annotations"
   },
   "line_number": "123",
@@ -91,6 +92,12 @@ The `SKOL_TAXA` class expects documents in the format created by `extract_taxa_t
   "empirical_page_number": "2"
 }
 ```
+
+The `ingest` field contains verbatim metadata from the source ingest database (`skol_dev` or similar), using canonical CouchDB field names:
+- `_id`: Original document ID from the ingest database
+- `url`: Human-readable URL for the source document
+- `pdf_url`: PDF URL if available
+- `db_name`: Name of the ingest database
 
 ## Key Features
 
@@ -121,9 +128,10 @@ Loads all taxon documents from CouchDB into a pandas DataFrame. Automatically sk
 
 Returns a DataFrame with source information and descriptions for embedding:
 - `source`: Class name ('SKOL_TAXA')
-- `filename`: Database identifier
+- `filename`: URL from ingest metadata, or database identifier as fallback
 - `row`: DataFrame index
 - `description`: Text to embed
+- `ingest`: Full ingest metadata dict (if available in source data)
 
 ### `to_dict(idx, similarity)`
 
@@ -180,7 +188,8 @@ This integration reads data created by the `../skol/extract_taxa_to_couchdb.py` 
 1. Reads annotated files from a CouchDB ingest database
 2. Extracts Taxon objects using the SKOL pipeline
 3. Saves Taxa as JSON documents to a taxon CouchDB database
-4. Uses deterministic document IDs based on (doc_id, url, line_number) for idempotent writes
+4. Uses deterministic document IDs based on (ingest._id, ingest.url, line_number) for idempotent writes
+5. Preserves the full `ingest` metadata from the source database
 
 The `SKOL_TAXA` class provides the read-side of this pipeline, making the extracted taxa available for search and discovery.
 

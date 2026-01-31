@@ -886,10 +886,12 @@ class SKOL_TAXA(Raw_Data_Index):
 
         # Convert to DataFrame
         self.df = pd.DataFrame(records)
-        # TODO(piggy): Fix the sources with bad URLs that made this fail. Convert back to an assert.
-        if not self.df.iloc[0]['source']['human_url'].startswith('http'):
-            print("Expected 'source.url' to start with 'http': "
-                  f"{self.df.iloc[0]['source']['human_url']}")
+        # Validate ingest field has valid URL
+        if 'ingest' in self.df.columns and self.df.iloc[0].get('ingest'):
+            ingest = self.df.iloc[0]['ingest']
+            url = ingest.get('url', '') if isinstance(ingest, dict) else ''
+            if url and not url.startswith('http'):
+                print(f"Expected 'ingest.url' to start with 'http': {url}")
 
     def get_descriptions(self):
         """Return descriptions for embedding with full metadata."""
@@ -900,15 +902,15 @@ class SKOL_TAXA(Raw_Data_Index):
                                 'description': 'Database has no data'
                                 })
 
-        # Extract human_url from source metadata to use as filename
-        # Falls back to self.filename if source metadata is not available
-        if 'source' in self.df.columns:
-            # Extract human_url from the source dict for each row
-            filenames = self.df['source'].apply(
-                lambda x: x.get('human_url', self.filename) if isinstance(x, dict) else self.filename
+        # Extract url from ingest metadata to use as filename
+        # Falls back to self.filename if ingest metadata is not available
+        if 'ingest' in self.df.columns:
+            # Extract url from the ingest dict for each row
+            filenames = self.df['ingest'].apply(
+                lambda x: x.get('url', self.filename) if isinstance(x, dict) else self.filename
             )
         else:
-            # No source metadata, use dummy filename for all rows
+            # No ingest metadata, use dummy filename for all rows
             filenames = self.filename
 
         # Start with required base fields for compatibility with sota_search
@@ -925,10 +927,9 @@ class SKOL_TAXA(Raw_Data_Index):
         if 'taxon' in self.df.columns:
             result['taxon'] = self.df['taxon']
 
-        # Add source metadata if it exists (dict with doc_id, human_url, db_name)
-        # Note: renamed to 'source_metadata' to avoid collision with 'source' column
-        if 'source' in self.df.columns:
-            result['source_metadata'] = self.df['source']
+        # Add ingest metadata if it exists (dict with _id, url, pdf_url, etc.)
+        if 'ingest' in self.df.columns:
+            result['ingest'] = self.df['ingest']
 
         # Add CouchDB _id for further work with the record (renamed to avoid CouchDB conflicts)
         if '_id' in self.df.columns:
@@ -978,12 +979,13 @@ class SKOL_TAXA(Raw_Data_Index):
         result['Description'] = row.get('description', '')
         result['taxon_id'] = row.get('_id', '')
 
-        # Extract source metadata if available
-        source = row.get('source', {})
-        if isinstance(source, dict):
-            result['FeedID'] = source.get('doc_id', row.get('_id', 'unknown'))
-            result['URL'] = source.get('url', '')
-            result['ProgramID'] = source.get('db_name', self.db_name)
+        # Extract ingest metadata if available
+        # ingest uses canonical field names: _id, url, pdf_url
+        ingest = row.get('ingest', {})
+        if isinstance(ingest, dict):
+            result['FeedID'] = ingest.get('_id', row.get('_id', 'unknown'))
+            result['URL'] = ingest.get('url', '')
+            result['ProgramID'] = ingest.get('db_name', self.db_name)
         else:
             result['FeedID'] = row.get('_id', 'unknown')
             result['ProgramID'] = self.db_name
