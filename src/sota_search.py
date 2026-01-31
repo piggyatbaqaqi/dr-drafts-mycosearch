@@ -176,7 +176,7 @@ def read_narrative_embeddings_from_redis(redis_url: str, embedding_name: str,
     """ Read narrative embeddings from Redis
 
     Args:
-        redis_url (str): Redis URL
+        redis_url (str): Redis URL (use rediss:// for TLS)
         embedding_name (str): Name of the embedding in Redis
         redis_username (str, optional): Redis username
         redis_password (str, optional): Redis password
@@ -184,13 +184,28 @@ def read_narrative_embeddings_from_redis(redis_url: str, embedding_name: str,
 
     Returns:
         Pandas.DataFrame: The narrative embeddings
+
+    Note:
+        For TLS connections, use a rediss:// URL. The system CA certificates
+        will be used for verification.
     """
     import redis
 
-    if redis_username and redis_password:
-        r = redis.from_url(redis_url, username=redis_username, password=redis_password, db=redis_db)
-    else:
-        r = redis.from_url(redis_url, db=redis_db)
+    kwargs = {'db': redis_db}
+
+    # Add authentication if configured
+    if redis_username:
+        kwargs['username'] = redis_username
+    if redis_password:
+        kwargs['password'] = redis_password
+
+    # Configure TLS if using rediss:// URL
+    if redis_url and redis_url.startswith('rediss://'):
+        kwargs['ssl_ca_certs'] = '/etc/ssl/certs/ca-certificates.crt'
+        # Don't verify hostname (cert is for synoptickeyof.life but we connect to localhost)
+        kwargs['ssl_check_hostname'] = False
+
+    r = redis.from_url(redis_url, **kwargs)
 
     pickled_data = r.get(embedding_name)
     if pickled_data is None:

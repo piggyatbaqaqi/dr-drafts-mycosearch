@@ -142,11 +142,26 @@ class EmbeddingsComputer:
 
 
     def write_embeddings_to_redis(self):
-        """Write embeddings to Redis using instance configuration."""
-        if self.redis_username and self.redis_password:
-            r = redis.from_url(self.redis_url, username=self.redis_username, password=self.redis_password, db=self.redis_db)
-        else:
-            r = redis.from_url(self.redis_url, db=self.redis_db)
+        """Write embeddings to Redis using instance configuration.
+
+        Supports TLS connections via rediss:// URLs. When using TLS,
+        the system CA certificates are used for verification.
+        """
+        kwargs = {'db': self.redis_db}
+
+        # Add authentication if configured
+        if self.redis_username:
+            kwargs['username'] = self.redis_username
+        if self.redis_password:
+            kwargs['password'] = self.redis_password
+
+        # Configure TLS if using rediss:// URL
+        if self.redis_url and self.redis_url.startswith('rediss://'):
+            kwargs['ssl_ca_certs'] = '/etc/ssl/certs/ca-certificates.crt'
+            # Don't verify hostname (cert is for synoptickeyof.life but we connect to localhost)
+            kwargs['ssl_check_hostname'] = False
+
+        r = redis.from_url(self.redis_url, **kwargs)
 
         pickled_data = pickle.dumps(self.result)
         r.set(self.embedding_name, pickled_data)
