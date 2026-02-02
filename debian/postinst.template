@@ -78,6 +78,12 @@ EOF
 chmod 755 ${SKOL_HOME}/bin/with_dr_drafts
 chown skol:skol ${SKOL_HOME}/bin/with_dr_drafts
 
+# Set ownership and permissions of version-specific directories
+chown -R skol:skol ${INSTALL_DIR}
+# Ensure files are readable (directories 755, files 644)
+find ${INSTALL_DIR} -type d -exec chmod 755 {} \;
+find ${INSTALL_DIR} -type f -exec chmod 644 {} \;
+
 # ============================================================
 # ATOMIC SWITCH: Now that everything is ready, switch symlink
 # ============================================================
