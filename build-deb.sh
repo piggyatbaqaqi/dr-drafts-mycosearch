@@ -27,6 +27,10 @@ BUILD_NUMBER=$((BUILD_NUMBER + 1))
 echo "$BUILD_NUMBER" > "$BUILD_NUMBER_FILE"
 
 FULL_VERSION="${VERSION}-${BUILD_NUMBER}"
+
+# Version-specific installation directory
+VERSION_DIR="/opt/dr-drafts/versions/${FULL_VERSION}"
+
 echo "=== Building Debian package with fpm (${PACKAGE} ${FULL_VERSION}) ==="
 
 # Clean previous builds
@@ -35,13 +39,22 @@ rm -rf dist/ build/ *.egg-info deb_dist/ staging/
 # Create output and staging directories
 mkdir -p deb_dist
 mkdir -p staging${WHEEL_DIR}
+mkdir -p staging${VERSION_DIR}/mycosearch
 
 # Build the wheel
 echo "Building Python wheel..."
 python3 -m build --wheel --outdir dist/
 
-# Copy wheel to staging area
+# Copy wheel to staging areas (both shared and version-specific)
 cp dist/*.whl staging${WHEEL_DIR}/
+cp dist/*.whl staging${VERSION_DIR}/mycosearch/
+
+# Inject version into postinst and prerm templates
+echo "Injecting version ${FULL_VERSION} into debian scripts..."
+mkdir -p staging_scripts
+sed "s/__VERSION__/${FULL_VERSION}/g" debian/postinst.template > staging_scripts/postinst
+sed "s/__VERSION__/${FULL_VERSION}/g" debian/prerm.template > staging_scripts/prerm
+chmod 755 staging_scripts/postinst staging_scripts/prerm
 
 # Build the deb using fpm from the staging directory
 # --no-auto-depends prevents fpm from generating dependencies automatically
@@ -60,14 +73,14 @@ fpm -s dir -t deb \
     --depends skol \
     --deb-user root \
     --deb-group root \
-    --after-install debian/postinst \
-    --before-remove debian/prerm \
+    --after-install staging_scripts/postinst \
+    --before-remove staging_scripts/prerm \
     --package "deb_dist/${PACKAGE}_${FULL_VERSION}_all.deb" \
     -C staging \
     .
 
 # Clean up staging
-rm -rf staging/
+rm -rf staging/ staging_scripts/
 
 echo "=== Done ==="
 echo "Debian package created:"

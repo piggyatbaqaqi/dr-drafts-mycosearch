@@ -1,0 +1,54 @@
+#!/bin/bash
+set -e
+
+# Version injected at build time
+VERSION="__VERSION__"
+INSTALL_DIR="/opt/dr-drafts/versions/${VERSION}"
+
+SKOL_HOME=/opt/skol
+DR_DRAFTS_HOME=/opt/dr-drafts
+DR_DRAFTS_VENV=${SKOL_HOME}/dr-drafts-venv
+MYCOSEARCH_SYMLINK="${DR_DRAFTS_HOME}/mycosearch"
+
+# Remove convenience symlinks
+for cmd in dr-drafts dr-drafts-build-index; do
+    rm -f /usr/local/bin/${cmd}-wrapper 2>/dev/null || true
+done
+
+# Only remove venv if no other versions are installed
+OTHER_VERSIONS=$(ls -d ${DR_DRAFTS_HOME}/versions/*/ 2>/dev/null | grep -v "${VERSION}" | wc -l)
+if [ "$OTHER_VERSIONS" -eq 0 ]; then
+    # Remove the wrapper script
+    rm -f ${SKOL_HOME}/bin/with_dr_drafts 2>/dev/null || true
+
+    # Remove the virtual environment only if this is the last version
+    if [ -d "${DR_DRAFTS_VENV}" ]; then
+        echo "Removing Python virtual environment (last version being removed)..."
+        rm -rf "${DR_DRAFTS_VENV}"
+    fi
+fi
+
+# Remove this version's directory
+if [ -d "${INSTALL_DIR}" ]; then
+    echo "Removing version ${VERSION}..."
+    rm -rf "${INSTALL_DIR}"
+fi
+
+# If this was the active version, clear the symlink
+CURRENT_MYCOSEARCH=$(readlink "${MYCOSEARCH_SYMLINK}" 2>/dev/null || true)
+if [ "$CURRENT_MYCOSEARCH" = "${INSTALL_DIR}/mycosearch" ]; then
+    rm -f "${MYCOSEARCH_SYMLINK}"
+    echo "Cleared symlink (this was the active version)"
+
+    # Try to activate another version if available
+    LATEST=$(ls -d ${DR_DRAFTS_HOME}/versions/*/ 2>/dev/null | sort -V | tail -1)
+    if [ -n "$LATEST" ]; then
+        LATEST_VERSION=$(basename "$LATEST")
+        ln -sfn "${DR_DRAFTS_HOME}/versions/${LATEST_VERSION}/mycosearch" "${MYCOSEARCH_SYMLINK}"
+        echo "Activated fallback version: ${LATEST_VERSION}"
+    fi
+fi
+
+#DEBHELPER#
+
+exit 0
