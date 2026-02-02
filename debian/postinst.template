@@ -32,16 +32,15 @@ mkdir -p /var/log/skol
 chown skol:skol /var/log/skol
 chmod 755 /var/log/skol
 
-# Migrate old non-versioned layout if needed
+# Migrate old non-versioned layout if needed (but don't switch symlinks yet)
 if [ -d "$MYCOSEARCH_SYMLINK" ] && [ ! -L "$MYCOSEARCH_SYMLINK" ]; then
     BACKUP="${DR_DRAFTS_HOME}/mycosearch.old-$(date +%Y%m%d%H%M%S)"
     mv "$MYCOSEARCH_SYMLINK" "$BACKUP"
     echo "Migrated old ${MYCOSEARCH_SYMLINK} to $BACKUP"
 fi
 
-# Create atomic symlink to new version
-ln -sfn "${INSTALL_DIR}/mycosearch" "$MYCOSEARCH_SYMLINK"
-echo "Activated dr-drafts-mycosearch ${VERSION}"
+# NOTE: Symlink switch is deferred until the end to minimize issues
+# The old version continues working while we prepare the new one
 
 # Create Python virtual environment and install dependencies
 echo "Creating Python virtual environment at ${DR_DRAFTS_VENV}..."
@@ -78,6 +77,13 @@ exec "$@"
 EOF
 chmod 755 ${SKOL_HOME}/bin/with_dr_drafts
 chown skol:skol ${SKOL_HOME}/bin/with_dr_drafts
+
+# ============================================================
+# ATOMIC SWITCH: Now that everything is ready, switch symlink
+# ============================================================
+echo "Switching to new version..."
+ln -sfn "${INSTALL_DIR}/mycosearch" "$MYCOSEARCH_SYMLINK"
+echo "Activated dr-drafts-mycosearch ${VERSION}"
 
 # Create convenience symlinks in /usr/local/bin
 for cmd in dr-drafts dr-drafts-build-index; do
