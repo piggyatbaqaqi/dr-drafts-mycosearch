@@ -49,6 +49,12 @@ python3 -m venv ${DR_DRAFTS_VENV}
 echo "Upgrading pip..."
 ${DR_DRAFTS_VENV}/bin/pip install --upgrade pip
 
+# Remove any old dr_drafts_mycosearch wheels to avoid conflicts
+echo "Cleaning up old dr_drafts_mycosearch wheels..."
+rm -f ${SKOL_HOME}/wheels/dr_drafts_mycosearch-*.whl 2>/dev/null || true
+# Copy the new wheel from this version's directory
+cp ${INSTALL_DIR}/mycosearch/dr_drafts_mycosearch-*.whl ${SKOL_HOME}/wheels/
+
 echo "Installing dr-drafts-mycosearch package from local wheel..."
 ${DR_DRAFTS_VENV}/bin/pip install ${SKOL_HOME}/wheels/dr_drafts_mycosearch-*.whl
 
