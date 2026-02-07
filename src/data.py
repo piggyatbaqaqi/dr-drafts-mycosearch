@@ -949,6 +949,12 @@ class SKOL_TAXA(Raw_Data_Index):
         if 'pdf_label' in self.df.columns:
             result['pdf_label'] = self.df['pdf_label']
 
+        # Add span metadata for Source Context Viewer
+        if 'nomenclature_spans' in self.df.columns:
+            result['nomenclature_spans'] = self.df['nomenclature_spans']
+        if 'description_spans' in self.df.columns:
+            result['description_spans'] = self.df['description_spans']
+
         return result
 
     def date2MMDDYYYY(self, date: str):
@@ -1011,5 +1017,11 @@ class SKOL_TAXA(Raw_Data_Index):
             result['PDFLabel'] = row['pdf_label']
         if 'empirical_page_number' in row:
             result['EmpiricalPageNumber'] = row['empirical_page_number']
+
+        # Include spans for Source Context Viewer
+        if 'nomenclature_spans' in row:
+            result['NomenclatureSpans'] = row['nomenclature_spans']
+        if 'description_spans' in row:
+            result['DescriptionSpans'] = row['description_spans']
 
         return result

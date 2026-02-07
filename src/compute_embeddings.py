@@ -14,7 +14,7 @@ from glob import glob
 from sentence_transformers import SentenceTransformer
 import pandas
 import torch
-import data as DATA_CLASSES
+from . import data as DATA_CLASSES
 import pickle
 from argparse import ArgumentParser
 
