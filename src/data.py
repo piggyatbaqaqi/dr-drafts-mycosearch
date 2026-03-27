@@ -1025,3 +1025,173 @@ class SKOL_TAXA(Raw_Data_Index):
             result['DescriptionSpans'] = row['description_spans']
 
         return result
+
+
+class SKOL_COLLECTIONS(Raw_Data_Index):
+    """
+    Integration to read user collections from CouchDB for embedding.
+
+    Connects to skol_collections_dev database and returns public (non-embargoed)
+    collections in a format compatible with SKOL_TAXA for unified embedding.
+
+    Args:
+        couchdb_url: URL of the CouchDB server (e.g., 'http://localhost:5984')
+        db_name: Name of the collections database (default: 'skol_collections_dev')
+        desc_att: Description attribute to use for embeddings (default: 'description')
+        username: Optional CouchDB username
+        password: Optional CouchDB password
+        verbosity: Verbosity level (0=silent, 1=info, 2=debug) (default: 1)
+    """
+
+    def __init__(self,
+                 couchdb_url: str,
+                 db_name: str = 'skol_collections_dev',
+                 desc_att: str = 'description',
+                 username: Optional[str] = None,
+                 password: Optional[str] = None,
+                 verbosity: int = 1):
+        if couchdb is None:
+            raise ImportError("couchdb package is required. Install with: pip install couchdb")
+
+        self.couchdb_url = couchdb_url
+        self.db_name = db_name
+        self.username = username
+        self.password = password
+        self.verbosity = verbosity
+
+        super().__init__(f"couchdb://{db_name}", desc_att)
+        self.load_data()
+
+    def load_data(self):
+        """Load collection data from CouchDB, filtering to public collections."""
+        server = couchdb.Server(self.couchdb_url)
+        if self.username and self.password:
+            server.resource.credentials = (self.username, self.password)
+
+        if self.db_name not in server:
+            self.df = pd.DataFrame()
+            if self.verbosity >= 1:
+                print(f"Warning: Database '{self.db_name}' not found")
+            return
+
+        db = server[self.db_name]
+
+        # Get current time for embargo filtering
+        now = datetime.now()
+
+        records = []
+        for doc_id in db:
+            if doc_id.startswith('_design/'):
+                continue
+
+            doc = db[doc_id]
+
+            # Only include collection type documents
+            if doc.get('type') != 'collection':
+                continue
+
+            # Skip hidden collections
+            collection_meta = doc.get('collection', {})
+            if collection_meta.get('hidden'):
+                if self.verbosity >= 2:
+                    print(f"Skipping hidden collection: {doc_id}")
+                continue
+
+            # Check embargo - skip if embargoed
+            embargo_str = collection_meta.get('embargo_until')
+            if embargo_str:
+                try:
+                    embargo_date = datetime.fromisoformat(
+                        embargo_str.replace('Z', '+00:00')
+                    )
+                    # Compare as naive datetime for simplicity
+                    if embargo_date.replace(tzinfo=None) > now:
+                        if self.verbosity >= 2:
+                            print(f"Skipping embargoed collection: {doc_id}")
+                        continue
+                except (ValueError, TypeError):
+                    pass
+
+            # Skip collections without descriptions
+            if not doc.get('description'):
+                if self.verbosity >= 2:
+                    print(f"Skipping collection without description: {doc_id}")
+                continue
+
+            records.append(doc)
+
+        if not records:
+            self.df = pd.DataFrame()
+            if self.verbosity >= 1:
+                print(f"Warning: No public collections found in '{self.db_name}'")
+            return
+
+        self.df = pd.DataFrame(records)
+
+    def get_descriptions(self):
+        """Return descriptions for embedding with metadata."""
+        if self.df.empty:
+            return pd.DataFrame({
+                'source': self.__class__.__name__,
+                'filename': self.filename,
+                'row': pd.Index([0]),
+                'description': 'No public collections'
+            })
+
+        result = pd.DataFrame({
+            'source': self.__class__.__name__,
+            'filename': self.filename,
+            'row': self.df.index,
+            'description': self.df[self.description_attribute]
+        })
+
+        # Add taxon (nomenclature) field
+        if 'taxon' in self.df.columns:
+            result['taxon'] = self.df['taxon']
+
+        # Add collection_id for result lookup
+        if '_id' in self.df.columns:
+            result['taxon_id'] = self.df['_id']
+
+        # Add ingest metadata
+        if 'ingest' in self.df.columns:
+            result['ingest'] = self.df['ingest']
+
+        # Add owner info
+        if 'owner' in self.df.columns:
+            result['owner'] = self.df['owner']
+
+        return result
+
+    def date2MMDDYYYY(self, date: str):
+        """Convert date string to MM/DD/YYYY format (not used for collections)."""
+        return ''
+
+    def to_dict(self, idx: int, similarity: float):
+        """Convert a collection record to the standard result dictionary format."""
+        row = self.df.iloc[idx]
+        result = self.mk_empty_row()
+
+        result['Similarity'] = similarity
+        result['Feed'] = 'User Collection'
+        result['Title'] = row.get('taxon', 'Unnamed Collection')
+        result['Description'] = row.get('description', '')
+        result['taxon_id'] = row.get('_id', '')
+
+        # Collection metadata
+        collection_meta = row.get('collection', {})
+        if isinstance(collection_meta, dict):
+            result['CollectionName'] = collection_meta.get('name', '')
+            result['CollectionId'] = collection_meta.get('collection_id', '')
+
+        # Owner info
+        owner = row.get('owner', {})
+        if isinstance(owner, dict):
+            result['Owner'] = owner.get('username', '')
+            result['OwnerId'] = owner.get('user_id', '')
+
+        result['Status'] = 'User Submitted'
+        result['Sponsor'] = 'Community'
+        result['SponsorType'] = 'User Collection'
+
+        return result
