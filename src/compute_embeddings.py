@@ -104,6 +104,7 @@ class EmbeddingsComputer:
             embs = transformer.encode(N,
                                       show_progress_bar=True,
                                       batch_size=64,
+                                      precision="int8",
                                       device=device_str  # Pass string instead of torch.device
                                       )
         ncols = len(embs[0])
