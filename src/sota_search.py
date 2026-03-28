@@ -146,16 +146,46 @@ def description(ds, nearest_neighbors, i):
     show_one(i, raw_data.df.loc[row].Description)
 
 
-def encode_prompt(prompt):
-    """Encode a prompt using the {DRDRAFT} model
+@lru_cache(maxsize=2)
+def _get_model(backend: Optional[str] = None) -> SentenceTransformer:
+    """Load and cache the SentenceTransformer model.
+
+    Args:
+        backend: "torch", "onnx", or None (defaults to "torch").
+
+    Returns:
+        Cached SentenceTransformer instance.
+    """
+    import torch
+
+    effective_backend = backend or "torch"
+
+    model_kwargs: dict = {}
+    if effective_backend == "onnx" and torch.cuda.is_available():
+        model_kwargs["providers"] = [
+            "TensorrtExecutionProvider",
+            "CUDAExecutionProvider",
+            "CPUExecutionProvider",
+        ]
+    return SentenceTransformer(
+        DRDRAFT,
+        backend=effective_backend,
+        model_kwargs=model_kwargs or None,
+    )
+
+
+def encode_prompt(prompt, backend=None):
+    """Encode a prompt using the DRDRAFT model.
 
     Args:
         prompt (str): The prompt to encode
+        backend (str, optional): "onnx" for ONNX Runtime,
+            None for PyTorch (default).
 
     Returns:
         Array: Vector representation of the prompt
     """
-    model = SentenceTransformer(DRDRAFT)
+    model = _get_model(backend)
     return model.encode([prompt])
 
 def read_narrative_embeddings(filename: str):

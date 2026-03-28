@@ -38,7 +38,9 @@ class EmbeddingsComputer:
                  redis_db: int = 0,
                  redis_expire: Optional[int] = None,
                  embedding_name: Optional[str] = None,
-                 model_name: str = MODEL_NAME):
+                 model_name: str = MODEL_NAME,
+                 precision: str = "float32",
+                 backend: str = "torch"):
         """Initialize the EmbeddingsComputer.
 
         Args:
@@ -52,6 +54,10 @@ class EmbeddingsComputer:
              in seconds
             embedding_name (str, optional): Name for embedding in Redis
             model_name (str): SentenceTransformer model name
+            precision (str): Encoding precision -
+             "float32", "float16", "int8", or "binary"
+            backend (str): SentenceTransformer backend -
+             "torch" (default) or "onnx"
         """
         self.idir = idir
         self.pickle_file = pickle_file
@@ -62,6 +68,8 @@ class EmbeddingsComputer:
         self.redist_expire = redis_expire
         self.embedding_name = embedding_name
         self.model_name = model_name
+        self.precision = precision
+        self.backend = backend
         self.result = None
 
     def encode_narratives(self, N: Iterable[str]) -> pandas.DataFrame:
@@ -75,8 +83,21 @@ class EmbeddingsComputer:
         Returns:
             pandas.DataFrame: DataFrame with #narratives x #dims.
         """
-        # Initialize model and move to GPU if available
-        transformer = SentenceTransformer(self.model_name)
+        # Initialize model
+        model_kwargs: dict = {}
+        if self.backend == "onnx":
+            if torch.cuda.is_available():
+                model_kwargs["providers"] = [
+                    "TensorrtExecutionProvider",
+                    "CUDAExecutionProvider",
+                    "CPUExecutionProvider",
+                ]
+            print("Using ONNX backend")
+        transformer = SentenceTransformer(
+            self.model_name,
+            backend=self.backend if self.backend != "torch" else None,
+            model_kwargs=model_kwargs or None,
+        )
 
         # Determine device and report it
         if torch.cuda.is_available():
@@ -104,8 +125,8 @@ class EmbeddingsComputer:
             embs = transformer.encode(N,
                                       show_progress_bar=True,
                                       batch_size=64,
-                                      precision="int8",
-                                      device=device_str  # Pass string instead of torch.device
+                                      precision=self.precision,
+                                      device=device_str,
                                       )
         ncols = len(embs[0])
         attnames = [f'F{i}' for i in range(ncols)]
