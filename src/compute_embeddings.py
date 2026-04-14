@@ -95,7 +95,7 @@ class EmbeddingsComputer:
             print("Using ONNX backend")
         transformer = SentenceTransformer(
             self.model_name,
-            backend=self.backend if self.backend != "torch" else None,
+            backend=self.backend,
             model_kwargs=model_kwargs or None,
         )
 
@@ -187,7 +187,7 @@ class EmbeddingsComputer:
 
         pickled_data = pickle.dumps(self.result)
         r.set(self.embedding_name, pickled_data)
-        if self.redist_expire is not None:
+        if self.redist_expire is not None and self.redist_expire > 0:
             r.expire(self.embedding_name, self.redist_expire)
         print(f'Embeddings written to Redis (db={self.redis_db}) with key: {self.embedding_name}')
 
