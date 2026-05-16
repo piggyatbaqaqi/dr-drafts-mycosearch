@@ -772,7 +772,8 @@ class SKOL(Raw_Data_Index):
         result['Similarity'] = similarity
         result['Feed'] = 'SKOL'
         result['FeedID'] = row['paragraph_number']
-        result['Title'] = row['taxon']
+        # 'treatment' is the post-rename field; 'taxon' is the legacy name.
+        result['Title'] = row.get('treatment') or row.get('taxon', '')
         result['ProgramID'] = "Do we really need this?"
         result['Sponsor'] = 'NA'  # row['Department/Ind.Agency']
         # CGAC
@@ -926,9 +927,13 @@ class SKOL_TAXA(Raw_Data_Index):
             'description': self.df[self.description_attribute]
         })
 
-        # Add taxon field if it exists (nomenclature)
-        if 'taxon' in self.df.columns:
-            result['taxon'] = self.df['taxon']
+        # Add nomenclature field as 'treatment'.  Post-skol-rename DBs
+        # carry the 'treatment' field; pre-rename DBs still have 'taxon'.
+        # Either way, emit it under the canonical 'treatment' column.
+        if 'treatment' in self.df.columns:
+            result['treatment'] = self.df['treatment']
+        elif 'taxon' in self.df.columns:
+            result['treatment'] = self.df['taxon']
 
         # Add ingest metadata if it exists (dict with _id, url, pdf_url, etc.)
         if 'ingest' in self.df.columns:
@@ -984,7 +989,7 @@ class SKOL_TAXA(Raw_Data_Index):
         # Basic fields
         result['Similarity'] = similarity
         result['Feed'] = 'CouchDB Taxa'
-        result['Title'] = row.get('taxon', 'Unknown taxon')
+        result['Title'] = row.get('treatment') or row.get('taxon', 'Unknown taxon')
         result['Description'] = row.get('description', '')
         result['taxon_id'] = row.get('_id', '')
 
@@ -1148,9 +1153,11 @@ class SKOL_COLLECTIONS(Raw_Data_Index):
             'description': self.df[self.description_attribute]
         })
 
-        # Add taxon (nomenclature) field
-        if 'taxon' in self.df.columns:
-            result['taxon'] = self.df['taxon']
+        # Add nomenclature field as 'treatment' (post-skol-rename canonical name).
+        if 'treatment' in self.df.columns:
+            result['treatment'] = self.df['treatment']
+        elif 'taxon' in self.df.columns:
+            result['treatment'] = self.df['taxon']
 
         # Add collection_id for result lookup
         if '_id' in self.df.columns:
@@ -1177,7 +1184,7 @@ class SKOL_COLLECTIONS(Raw_Data_Index):
 
         result['Similarity'] = similarity
         result['Feed'] = 'User Collection'
-        result['Title'] = row.get('taxon', 'Unnamed Collection')
+        result['Title'] = row.get('treatment') or row.get('taxon', 'Unnamed Collection')
         result['Description'] = row.get('description', '')
         result['taxon_id'] = row.get('_id', '')
 
