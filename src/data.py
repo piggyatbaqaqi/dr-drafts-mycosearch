@@ -9,7 +9,10 @@ from typing import Optional
 
 from finder import read_files, parse_annotated, target_classes
 from label import Label
-import taxon
+# skol renamed taxon.py → treatment.py (docs/taxon_to_treatment_plan.md
+# step 1.A); alias keeps existing taxon.group_paragraphs(...) call sites
+# working without further changes.
+import treatment as taxon
 
 try:
     import couchdb
