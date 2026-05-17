@@ -27,6 +27,35 @@ DESCRIPTION_ATTR = {
                     }
 
 
+def recommend_batch_size_from_gpu_memory(total_memory_bytes: int) -> int:
+    """Tiered default for SBERT ``encode(batch_size=...)``.
+
+    Conservative enough to leave headroom for the model itself, the tokenizer's
+    intermediate state, and other CUDA workloads sharing the device.  Tuned
+    for paraphrase-MiniLM-class encoders (~400-dim) at ``max_seq_length=128``.
+    For larger models pass an explicit ``batch_size`` to ``EmbeddingsComputer``.
+
+    Args:
+        total_memory_bytes: Total memory on the device (not free memory —
+            we reserve enough headroom internally).
+
+    Returns:
+        Recommended batch size, always a power of two between 64 and 2048.
+    """
+    gb = total_memory_bytes / (1024 ** 3)
+    if gb < 6:
+        return 64
+    if gb < 12:
+        return 128
+    if gb < 20:
+        return 256
+    if gb < 28:
+        return 512
+    if gb < 44:
+        return 1024
+    return 2048
+
+
 class EmbeddingsComputer:
     """Class for computing and storing embeddings from narrative data."""
 
@@ -40,7 +69,8 @@ class EmbeddingsComputer:
                  embedding_name: Optional[str] = None,
                  model_name: str = MODEL_NAME,
                  precision: str = "float32",
-                 backend: str = "torch"):
+                 backend: str = "torch",
+                 batch_size: Optional[int] = None):
         """Initialize the EmbeddingsComputer.
 
         Args:
@@ -58,6 +88,11 @@ class EmbeddingsComputer:
              "float32", "float16", "int8", or "binary"
             backend (str): SentenceTransformer backend -
              "torch" (default) or "onnx"
+            batch_size (int, optional): Batch size for ``encode()``.
+             When None (default) we pick a tiered value from the device's
+             total GPU memory via ``recommend_batch_size_from_gpu_memory``.
+             Pass an explicit value to override for large models or to
+             leave headroom for other CUDA workloads.
         """
         self.idir = idir
         self.pickle_file = pickle_file
@@ -70,6 +105,7 @@ class EmbeddingsComputer:
         self.model_name = model_name
         self.precision = precision
         self.backend = backend
+        self.batch_size = batch_size
         self.result = None
 
     def encode_narratives(self, N: Iterable[str]) -> pandas.DataFrame:
@@ -122,9 +158,18 @@ class EmbeddingsComputer:
             transformer.stop_multi_process_pool(pool)
         else:
             # Single GPU or CPU - use device parameter as string
+            if self.batch_size is not None:
+                batch_size = self.batch_size
+            elif device_str == 'cuda':
+                batch_size = recommend_batch_size_from_gpu_memory(
+                    gpu_props.total_memory
+                )
+            else:
+                batch_size = 32  # CPU default — keep modest
+            print(f'  Encoding with batch_size={batch_size}')
             embs = transformer.encode(N,
                                       show_progress_bar=True,
-                                      batch_size=64,
+                                      batch_size=batch_size,
                                       precision=self.precision,
                                       device=device_str,
                                       )
