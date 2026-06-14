@@ -4,10 +4,10 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "dr-drafts-mycosearch"
-version = "0.3.0"
+version = "0.4.0"
 description = "State-of-the-art literature search and embedding-based discovery for scientific papers and grant opportunities, mycological fork"
 readme = "README.md"
-requires-python = ">=3.8"
+requires-python = ">=3.14"
 license = "MIT"
 authors = [
     {name = "Nick Gisolfi", email="ngisolfi@cs.cmu.edu"},
@@ -107,7 +107,7 @@ exclude = '''
 '''
 
 [tool.mypy]
-python_version = "3.8"
+python_version = "3.14"
 warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = false

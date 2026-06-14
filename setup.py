@@ -20,7 +20,7 @@ except (ImportError, FileNotFoundError):
     # Fallback metadata if pyproject.toml is not available
     metadata = {
         "name": "dr-drafts-mycosearch",
-        "version": "0.2.0",
+        "version": "0.4.0",
         "description": "State-of-the-art literature search and embedding-based discovery",
     }
 
