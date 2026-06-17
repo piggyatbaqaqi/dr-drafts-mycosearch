@@ -8,6 +8,7 @@ INSTALL_DIR="/opt/dr-drafts/versions/${VERSION}"
 SKOL_HOME=/opt/skol
 DR_DRAFTS_HOME=/opt/dr-drafts
 DR_DRAFTS_VENV=${SKOL_HOME}/dr-drafts-venv
+PYTHON=python3.14
 
 # Symlink target
 MYCOSEARCH_SYMLINK="${DR_DRAFTS_HOME}/mycosearch"
@@ -43,8 +44,8 @@ fi
 # The old version continues working while we prepare the new one
 
 # Create Python virtual environment and install dependencies
-echo "Creating Python virtual environment at ${DR_DRAFTS_VENV}..."
-python3 -m venv ${DR_DRAFTS_VENV}
+echo "Creating Python 3.14 virtual environment at ${DR_DRAFTS_VENV}..."
+${PYTHON} -m venv ${DR_DRAFTS_VENV}
 
 echo "Upgrading pip..."
 ${DR_DRAFTS_VENV}/bin/pip install --upgrade pip
