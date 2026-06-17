@@ -41,9 +41,20 @@ mkdir -p deb_dist
 mkdir -p staging${WHEEL_DIR}
 mkdir -p staging${VERSION_DIR}/mycosearch
 
-# Build the wheel
-echo "Building Python wheel..."
-python3 -m build --wheel --outdir dist/
+# Build the wheel.  Must use python3.14 explicitly — even inside an
+# activated conda env, 'python3' can land on system python3.13, and
+# setuptools's requires-python check (>=3.14, per pyproject.toml)
+# rejects the build with 'requires a different Python: 3.13.x not in
+# >=3.14'.  Override with PYTHON_BIN= if needed.
+PYTHON_BIN="${PYTHON_BIN:-python3.14}"
+PY_VER="$("$PYTHON_BIN" -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")')"
+if [[ "$PY_VER" != "3.14" ]]; then
+    echo "ERROR: $PYTHON_BIN reports Python $PY_VER, expected 3.14." >&2
+    echo "       Set PYTHON_BIN=/path/to/python3.14 and retry." >&2
+    exit 1
+fi
+echo "Building Python wheel against $PYTHON_BIN (Python $PY_VER)..."
+"$PYTHON_BIN" -m build --wheel --outdir dist/
 
 # Copy wheel to staging areas (both shared and version-specific)
 cp dist/*.whl staging${WHEEL_DIR}/
@@ -68,8 +79,8 @@ fpm -s dir -t deb \
     --category "python" \
     --architecture all \
     --no-auto-depends \
-    --depends python3 \
-    --depends python3-venv \
+    --depends python3.14 \
+    --depends python3.14-venv \
     --depends skol \
     --deb-user root \
     --deb-group root \
