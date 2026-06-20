@@ -12,7 +12,7 @@ set -e
 
 cd "$(dirname "$0")"
 
-VERSION="0.3.0"
+VERSION="0.4.0"
 PACKAGE="dr-drafts-mycosearch"
 WHEEL_DIR="/opt/skol/wheels"
 
